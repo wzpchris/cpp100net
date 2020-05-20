@@ -100,22 +100,27 @@ int main() {
 
 	
 	while (true) {
-		DataHeader header = {};
+		//缓冲区处理粘包与分包问题
+		char szRecv[1024] = {};
 		//5.接收客户端数据
-		int nLen = recv(_cSock, (char *)&header, sizeof(DataHeader), 0);
+		int nLen = recv(_cSock, szRecv, sizeof(DataHeader), 0);
+		DataHeader *header = (DataHeader*)szRecv;
 		if (nLen <= 0) {
 			printf("客户端已退出，任务结束.");
 			break;
 		}
 
+		/*if (nLen >= header->dataLength) {
+
+		}*/
 		//6.处理请求
-		switch (header.cmd) 
+		switch (header->cmd) 
 		{
 			case CMD_LOGIN:
 			{
-				Login login = {};
-				recv(_cSock, (char*)&login + sizeof(DataHeader), sizeof(Login) - sizeof(DataHeader), 0);
-				printf("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login.dataLength, login.cmd, login.UserName, login.PassWord);
+				recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+				Login *login = (Login*)szRecv;
+				printf("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login->dataLength, login->cmd, login->UserName, login->PassWord);
 				//忽略判断用户密码是否正确的过程
 				LoginResult ret;
 				send(_cSock, (const char*)&ret, sizeof(LoginResult), 0);
@@ -123,9 +128,9 @@ int main() {
 			break;
 			case CMD_LOGOUT: 
 			{
-				LogOut logout = {};
-				recv(_cSock, (char*)&logout + sizeof(DataHeader), sizeof(LogOut) - sizeof(DataHeader), 0);
-				printf("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout.dataLength, logout.cmd, logout.UserName);
+				recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+				LogOut *logout = (LogOut*)szRecv;
+				printf("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout->dataLength, logout->cmd, logout->UserName);
 				//忽略判断用户密码是否正确的过程
 				LogOutResult ret;
 				send(_cSock, (const char*)&ret, sizeof(LogOutResult), 0);
@@ -133,8 +138,8 @@ int main() {
 			break;
 			default: 
 			{
-				header.cmd = CMD_ERROR;
-				header.dataLength = 0;
+				header->cmd = CMD_ERROR;
+				header->dataLength = 0;
 				send(_cSock, (const char*)&header, sizeof(DataHeader), 0);
 			}
 			break;
