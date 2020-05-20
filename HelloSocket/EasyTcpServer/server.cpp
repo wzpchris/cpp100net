@@ -7,9 +7,34 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-struct DataPackage {
-	int age;
-	char name[32];
+enum CMD {
+	CMD_LOGIN,
+	CMD_LOGOUT,
+	CMD_ERROR,
+};
+
+//消息头
+struct DataHeader {
+	short dataLength;
+	short cmd;
+};
+
+//DataPackage
+struct Login {
+	char UserName[32];
+	char PassWord[32];
+};
+
+struct LoginResult {
+	int result;
+};
+
+struct LogOut {
+	char UserName[32];
+};
+
+struct LogOutResult {
+	int result;
 };
 
 int main() {
@@ -53,29 +78,49 @@ int main() {
 	}
 	printf("新客户端加入:socket =%d, IP = %s \n", (int)_cSock, inet_ntoa(clientAddr.sin_addr));
 
-	char _recvBuf[128] = {};
-
+	
 	while (true) {
+		DataHeader header = {};
 		//5.接收客户端数据
-		int nLen = recv(_cSock, _recvBuf, 128, 0);
+		int nLen = recv(_cSock, (char *)&header, sizeof(DataHeader), 0);
 		if (nLen <= 0) {
 			printf("客户端已退出，任务结束.");
 			break;
 		}
 
-		printf("recv client msg: %s\n", _recvBuf);
+		printf("recv client msg: [len=%d, cmd=%d]\n", header.dataLength, header.cmd);
 
 		//6.处理请求
-		if (0 == strcmp(_recvBuf, "getInfo")) {
-			DataPackage dp = { 80, "Tom" };
-			//7.send向客户端发送一条数据
-			send(_cSock, (const char*)&dp, sizeof(DataPackage), 0);
-		}
-		else {
-			char msgBuf[] = "???.";
-			//7.send向客户端发送一条数据
-			send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
-		}
+		switch (header.cmd) 
+		{
+			case CMD_LOGIN:
+			{
+				Login login = {};
+				recv(_cSock, (char*)&login, sizeof(Login), 0);
+				//忽略判断用户密码是否正确的过程
+				send(_cSock, (const char*)&header, sizeof(DataHeader), 0);
+				LoginResult ret = {1};
+				send(_cSock, (const char*)&ret, sizeof(LoginResult), 0);
+			}
+			break;
+			case CMD_LOGOUT: 
+			{
+				LogOut logout = {};
+				recv(_cSock, (char*)&logout, sizeof(LogOut), 0);
+				//忽略判断用户密码是否正确的过程
+				send(_cSock, (const char*)&header, sizeof(DataHeader), 0);
+				LogOutResult ret = { 1 };
+				send(_cSock, (const char*)&ret, sizeof(LogOutResult), 0);
+			}
+			break;
+			default: 
+			{
+				header.cmd = CMD_ERROR;
+				header.dataLength = 0;
+				send(_cSock, (const char*)&header, sizeof(DataHeader), 0);
+			}
+			break;
+		};
 	}
 	
 	//8.关闭套接字closesocket
