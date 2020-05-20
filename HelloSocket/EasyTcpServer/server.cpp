@@ -13,6 +13,7 @@ enum CMD {
 	CMD_LOGIN_RESULT,
 	CMD_LOGOUT,
 	CMD_LOGOUT_RESULT,
+	CMD_NEW_USER_JOIN,
 	CMD_ERROR,
 };
 
@@ -58,6 +59,15 @@ struct LogOutResult:public DataHeader {
 	int result;
 };
 
+struct NewUserJoin :public DataHeader {
+	NewUserJoin() {
+		dataLength = sizeof(NewUserJoin);
+		cmd = CMD_NEW_USER_JOIN;
+		sock = 0;
+	}
+	int sock;
+};
+
 std::vector<SOCKET> g_clients;
 
 int processor(SOCKET _cSock) {
@@ -67,7 +77,7 @@ int processor(SOCKET _cSock) {
 	int nLen = recv(_cSock, szRecv, sizeof(DataHeader), 0);
 	DataHeader *header = (DataHeader*)szRecv;
 	if (nLen <= 0) {
-		printf("client exit\n");
+		printf("client socket=%d exit\n", _cSock);
 		return -1;
 	}
 
@@ -140,7 +150,7 @@ int main() {
 	}
 
 	while (true) {
-		//伯克利 socket
+		//伯克利 BSD	socket
 		fd_set fdRead;
 		fd_set fdWrite;
 		fd_set fdExp;
@@ -178,6 +188,11 @@ int main() {
 				printf("error invalid SOCKET...\n");
 			}
 
+			NewUserJoin userJoin;
+			userJoin.sock = _cSock;
+			for (auto s : g_clients) {
+				send(s, (const char*)&userJoin, sizeof(userJoin), 0);
+			}
 			g_clients.push_back(_cSock);
 			printf("new client: socket =%d, IP = %s \n", (int)_cSock, inet_ntoa(clientAddr.sin_addr));
 		}
@@ -190,6 +205,8 @@ int main() {
 				}
 			}
 		}
+		
+		printf("idle time to hand other biz.\n");
 	}
 
 	for (auto s : g_clients) {

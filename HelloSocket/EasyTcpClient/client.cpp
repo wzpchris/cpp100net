@@ -11,6 +11,7 @@ enum CMD {
 	CMD_LOGIN_RESULT,
 	CMD_LOGOUT,
 	CMD_LOGOUT_RESULT,
+	CMD_NEW_USER_JOIN,
 	CMD_ERROR,
 };
 
@@ -56,6 +57,61 @@ struct LogOutResult :public DataHeader {
 	int result;
 };
 
+struct NewUserJoin :public DataHeader {
+	NewUserJoin() {
+		dataLength = sizeof(NewUserJoin);
+		cmd = CMD_NEW_USER_JOIN;
+		sock = 0;
+	}
+	int sock;
+};
+
+int processor(SOCKET _cSock) {
+	//缓冲区处理粘包与分包问题
+	char szRecv[1024] = {};
+	//5.接收客户端数据
+	int nLen = recv(_cSock, szRecv, sizeof(DataHeader), 0);
+	DataHeader *header = (DataHeader*)szRecv;
+	if (nLen <= 0) {
+		printf("connection break socket=%d exit\n", _cSock);
+		return -1;
+	}
+
+	/*if (nLen >= header->dataLength) {
+
+	}*/
+	//6.处理请求
+	switch (header->cmd)
+	{
+	case CMD_LOGIN_RESULT:
+	{
+		recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+		LoginResult *loginret = (LoginResult*)szRecv;
+		printf("recv server CMD_LOGIN_RESULT msg: [len=%d, cmd=%d, result=%d]\n", 
+				loginret->dataLength, loginret->cmd, loginret->result);
+	}
+	break;
+	case CMD_LOGOUT_RESULT:
+	{
+		recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+		LogOutResult *logoutret = (LogOutResult*)szRecv;
+		printf("recv server CMD_LOGOUT_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
+			logoutret->dataLength, logoutret->cmd, logoutret->result);
+	}
+	break;
+	case CMD_NEW_USER_JOIN:
+	{
+		recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
+		NewUserJoin *newJoin = (NewUserJoin*)szRecv;
+		printf("recv server CMD_NEW_USER_JOIN msg: [len=%d, cmd=%d, sock=%d]\n",
+			newJoin->dataLength, newJoin->cmd, newJoin->sock);
+	}
+	break;
+	};
+
+	return 0;
+}
+
 int main() {
 	//启动Windows socket 2.X环境
 	WORD ver = MAKEWORD(2, 2);
@@ -66,10 +122,10 @@ int main() {
 	//1.建立一个socket
 	SOCKET _sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (INVALID_SOCKET == _sock) {
-		printf("错误,建立socket失败...\n");
+		printf("socket error ...\n");
 	}
 	else {
-		printf("建立socket成功...\n");
+		printf("socket success ...\n");
 	}
 	//2.链接服务器connect
 	sockaddr_in _sin = {};
@@ -78,50 +134,40 @@ int main() {
 	_sin.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
 	int ret = connect(_sock, (const sockaddr*)&_sin, sizeof(sockaddr_in));
 	if (SOCKET_ERROR == ret) {
-		printf("错误,连接服务器失败...\n");
+		printf("connect error ...\n");
 	}
 	else {
-		printf("连接服务器成功...\n");
+		printf("connect success ...\n");
 	}
 	
 	while (true) {
-		//3.输入请求命令
-		char cmdBuf[128] = {};
-		scanf("%s", cmdBuf);
+		fd_set fdReads;
+		FD_ZERO(&fdReads);
 
-		//4.处理请求
-		if (0 == strcmp(cmdBuf, "exit")) {
-			printf("接收到退出命令exit\n");
+		FD_SET(_sock, &fdReads);
+
+		timeval t = { 0, 0 };
+		int ret = select(_sock + 1, &fdReads, NULL, NULL, &t);
+		if (ret < 0) {
+			printf("select error ...\n");
 			break;
 		}
-		else if (0 == strcmp(cmdBuf, "login")) {
-			Login login;
-			strcpy(login.UserName, "tom");
-			strcpy(login.PassWord, "tom");
-			//5.向服务器发送请求
-			send(_sock, (const char*)&login, sizeof(Login), 0);
 
-			//接收服务器返回的数据
-			LoginResult loginRet = {};
-			recv(_sock, (char*)&loginRet, sizeof(LoginResult), 0);
-
-			printf("LoginResult: %d\n", loginRet.result);
+		if (FD_ISSET(_sock, &fdReads)) {
+			FD_CLR(_sock, &fdReads);
+			
+			if (-1 == processor(_sock)) {
+				printf("server no msg\n");
+				break;
+			}
 		}
-		else if (0 == strcmp(cmdBuf, "logout")) {
-			LogOut logout;
-			strcpy(logout.UserName, "tom");
-			//5.向服务器发送请求
-			send(_sock, (const char*)&logout, sizeof(LogOut), 0);
 
-			//接收服务器返回的数据
-			LogOutResult logoutRet = {};
-			recv(_sock, (char*)&logoutRet, sizeof(LogOutResult), 0);
-
-			printf("LogOutResult: %d\n", logoutRet.result);
-		}
-		else {
-			printf("no support cmd.\n");
-		}
+		printf("idle time to hand other biz.\n");
+		Login login;
+		strcpy(login.UserName, "tom");
+		strcpy(login.PassWord, "tom");
+		send(_sock, (const char *)&login, sizeof(Login), 0);
+		Sleep(1000);
 	}
 	
 	//7.关闭套接字closesocket
@@ -130,7 +176,7 @@ int main() {
 	//关闭
 	WSACleanup();
 
-	printf("已退出，任务结束.");
+	printf("exit.\n");
 	getchar();
 	return 0;
 }
