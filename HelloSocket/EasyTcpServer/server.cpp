@@ -7,6 +7,11 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
+struct DataPackage {
+	int age;
+	char name[32];
+};
+
 int main() {
 	//启动Windows socket 2.X环境
 	WORD ver = MAKEWORD(2, 2);
@@ -61,15 +66,10 @@ int main() {
 		printf("recv client msg: %s\n", _recvBuf);
 
 		//6.处理请求
-		if (0 == strcmp(_recvBuf, "getName")) {
-			char msgBuf[] = "Xiao Qiang.";
+		if (0 == strcmp(_recvBuf, "getInfo")) {
+			DataPackage dp = { 80, "Tom" };
 			//7.send向客户端发送一条数据
-			send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
-		}
-		else if (0 == strcmp(_recvBuf, "getAge")) {
-			char msgBuf[] = "80.";
-			//7.send向客户端发送一条数据
-			send(_cSock, msgBuf, strlen(msgBuf) + 1, 0);
+			send(_cSock, (const char*)&dp, sizeof(DataPackage), 0);
 		}
 		else {
 			char msgBuf[] = "???.";

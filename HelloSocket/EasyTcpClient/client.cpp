@@ -6,6 +6,11 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
+struct DataPackage {
+	int age;
+	char name[32];
+};
+
 int main() {
 	//启动Windows socket 2.X环境
 	WORD ver = MAKEWORD(2, 2);
@@ -53,7 +58,8 @@ int main() {
 		char msgBuf[128] = { 0 };
 		int nlen = recv(_sock, msgBuf, 128, 0);
 		if (nlen > 0) {
-			printf("recv server msg:%s\n", msgBuf);
+			DataPackage *dp = (DataPackage*)msgBuf;
+			printf("recv server msg:[age:%d, name:%s]\n", dp->age, dp->name);
 		}
 	}
 	
