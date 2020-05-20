@@ -6,9 +6,34 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-struct DataPackage {
-	int age;
-	char name[32];
+enum CMD {
+	CMD_LOGIN,
+	CMD_LOGOUT,
+	CMD_ERROR,
+};
+
+//消息头
+struct DataHeader {
+	short dataLength;
+	short cmd;
+};
+
+//DataPackage
+struct Login {
+	char UserName[32];
+	char PassWord[32];
+};
+
+struct LoginResult {
+	int result;
+};
+
+struct LogOut {
+	char UserName[32];
+};
+
+struct LogOutResult {
+	int result;
 };
 
 int main() {
@@ -49,17 +74,42 @@ int main() {
 			printf("接收到退出命令exit\n");
 			break;
 		}
-		else {
+		else if (0 == strcmp(cmdBuf, "login")) {
+			Login login = { "tom", "tom" };
+			DataHeader header = {};
+			header.dataLength = sizeof(Login);
+			header.cmd = CMD_LOGIN;
 			//5.向服务器发送请求
-			send(_sock, cmdBuf, strlen(cmdBuf) + 1, 0);
-		}
+			send(_sock, (const char*)&header, sizeof(DataHeader), 0);
+			send(_sock, (const char*)&login, sizeof(Login), 0);
 
-		//6.接收服务器信息recv
-		char msgBuf[128] = { 0 };
-		int nlen = recv(_sock, msgBuf, 128, 0);
-		if (nlen > 0) {
-			DataPackage *dp = (DataPackage*)msgBuf;
-			printf("recv server msg:[age:%d, name:%s]\n", dp->age, dp->name);
+			//接收服务器返回的数据
+			DataHeader recvHeader = {};
+			LoginResult loginRet = {};
+			recv(_sock, (char*)&recvHeader, sizeof(DataHeader), 0);
+			recv(_sock, (char*)&loginRet, sizeof(LoginResult), 0);
+
+			printf("LoginResult: %d\n", loginRet.result);
+		}
+		else if (0 == strcmp(cmdBuf, "logout")) {
+			LogOut logout = { "tom" };
+			DataHeader header = {};
+			header.dataLength = sizeof(LogOut);
+			header.cmd = CMD_LOGOUT;
+			//5.向服务器发送请求
+			send(_sock, (const char*)&header, sizeof(DataHeader), 0);
+			send(_sock, (const char*)&logout, sizeof(LogOut), 0);
+
+			//接收服务器返回的数据
+			DataHeader recvHeader = {};
+			LogOutResult logoutRet = {};
+			recv(_sock, (char*)&recvHeader, sizeof(DataHeader), 0);
+			recv(_sock, (char*)&logoutRet, sizeof(LogOutResult), 0);
+
+			printf("LogOutResult: %d\n", logoutRet.result);
+		}
+		else {
+			printf("no support cmd.\n");
 		}
 	}
 	
