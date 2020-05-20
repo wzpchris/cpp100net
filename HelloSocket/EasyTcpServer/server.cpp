@@ -206,7 +206,7 @@ int main() {
 			}
 		}
 		
-		printf("idle time to hand other biz.\n");
+		//printf("idle time to hand other biz.\n");
 	}
 
 	for (auto s : g_clients) {

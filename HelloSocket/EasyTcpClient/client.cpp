@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <WinSock2.h>  //这里会产生宏重复定义问题,需要添加宏定义WIN32_LEAN_AND_MEAN
 #include <cstdio>
+#include <thread>    //c++标准线程库
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -112,6 +113,33 @@ int processor(SOCKET _cSock) {
 	return 0;
 }
 
+bool g_bRun = true;
+void cmdThread(SOCKET sock) {
+	while (true) {
+		char cmdBuf[256] = {};
+		scanf("%s", cmdBuf);
+		if (0 == strcmp(cmdBuf, "exit")) {
+			g_bRun = false;
+			printf("client exit cmdThread...\n");
+			break;
+		}
+		else if (0 == strcmp(cmdBuf, "login")) {
+			Login login;
+			strcpy(login.UserName, "tom");
+			strcpy(login.PassWord, "tom");
+			send(sock, (const char *)&login, sizeof(Login), 0);
+		}
+		else if (0 == strcmp(cmdBuf, "logout")) {
+			LogOut logout;
+			strcpy(logout.UserName, "tom");
+			send(sock, (const char *)&logout, sizeof(LogOut), 0);
+		}
+		else {
+			printf("no support cmd.\n");
+		}
+	}
+}
+
 int main() {
 	//启动Windows socket 2.X环境
 	WORD ver = MAKEWORD(2, 2);
@@ -140,7 +168,12 @@ int main() {
 		printf("connect success ...\n");
 	}
 	
-	while (true) {
+	//启动线程
+	std::thread t1(cmdThread, _sock);
+	//与主线程分离
+	t1.detach();
+
+	while (g_bRun) {
 		fd_set fdReads;
 		FD_ZERO(&fdReads);
 
@@ -161,13 +194,6 @@ int main() {
 				break;
 			}
 		}
-
-		printf("idle time to hand other biz.\n");
-		Login login;
-		strcpy(login.UserName, "tom");
-		strcpy(login.PassWord, "tom");
-		send(_sock, (const char *)&login, sizeof(Login), 0);
-		Sleep(1000);
 	}
 	
 	//7.关闭套接字closesocket
