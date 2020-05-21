@@ -3,6 +3,7 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <windows.h>
 #include <WinSock2.h>  //这里会产生宏重复定义问题,需要添加宏定义WIN32_LEAN_AND_MEAN
+#pragma comment(lib, "ws2_32.lib")
 #else
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -16,7 +17,7 @@
 #include <cstdio>
 #include <thread>    //c++标准线程库
 
-#pragma comment(lib, "ws2_32.lib")
+
 
 enum CMD {
 	CMD_LOGIN,
