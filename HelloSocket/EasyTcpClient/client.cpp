@@ -1,7 +1,18 @@
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <windows.h>
 #include <WinSock2.h>  //这里会产生宏重复定义问题,需要添加宏定义WIN32_LEAN_AND_MEAN
+#else
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <string.h>
+
+#define SOCKET int
+#define INVALID_SOCKET (SOCKET)(~0)
+#define SOCKET_ERROR (-1)
+#endif
+
 #include <cstdio>
 #include <thread>    //c++标准线程库
 
@@ -88,8 +99,8 @@ int processor(SOCKET _cSock) {
 	{
 		recv(_cSock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
 		LoginResult *loginret = (LoginResult*)szRecv;
-		printf("recv server CMD_LOGIN_RESULT msg: [len=%d, cmd=%d, result=%d]\n", 
-				loginret->dataLength, loginret->cmd, loginret->result);
+		printf("recv server CMD_LOGIN_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
+			loginret->dataLength, loginret->cmd, loginret->result);
 	}
 	break;
 	case CMD_LOGOUT_RESULT:
@@ -141,11 +152,13 @@ void cmdThread(SOCKET sock) {
 }
 
 int main() {
+#ifdef _WIN32
 	//启动Windows socket 2.X环境
 	WORD ver = MAKEWORD(2, 2);
 	WSADATA dat;
 	//启动，需要添加库文件ws2_32.lib
 	WSAStartup(ver, &dat);
+#endif
 	//-----------------------
 	//1.建立一个socket
 	SOCKET _sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -159,7 +172,11 @@ int main() {
 	sockaddr_in _sin = {};
 	_sin.sin_family = AF_INET;
 	_sin.sin_port = htons(4567);
+#ifdef _WIN32
 	_sin.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+#else 
+	_sin.sin_addr.s_addr = inet_addr("192.168.1.101");
+#endif
 	int ret = connect(_sock, (const sockaddr*)&_sin, sizeof(sockaddr_in));
 	if (SOCKET_ERROR == ret) {
 		printf("connect error ...\n");
@@ -167,7 +184,7 @@ int main() {
 	else {
 		printf("connect success ...\n");
 	}
-	
+
 	//启动线程
 	std::thread t1(cmdThread, _sock);
 	//与主线程分离
@@ -188,19 +205,24 @@ int main() {
 
 		if (FD_ISSET(_sock, &fdReads)) {
 			FD_CLR(_sock, &fdReads);
-			
+
 			if (-1 == processor(_sock)) {
 				printf("server no msg\n");
 				break;
 			}
 		}
 	}
-	
+
+#ifdef _WIN32
 	//7.关闭套接字closesocket
 	closesocket(_sock);
 	//-----------------------
+
 	//关闭
 	WSACleanup();
+#else 
+	close(_sock);
+#endif
 
 	printf("exit.\n");
 	getchar();
