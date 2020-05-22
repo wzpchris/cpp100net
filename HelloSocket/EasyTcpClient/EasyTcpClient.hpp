@@ -157,9 +157,8 @@ public:
 	}
 
 	//响应网络消息
-	void OnNetMsg(DataHeader *header) {
+	virtual void OnNetMsg(DataHeader *header) {
 		//6.处理请求
-		
 		switch (header->cmd)
 		{
 		case CMD_LOGIN_RESULT:
