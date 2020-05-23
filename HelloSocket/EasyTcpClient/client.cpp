@@ -20,13 +20,23 @@ void cmdThread() {
 }
 
 int main() {
-	const int nCount = FD_SETSIZE - 1;
+	const int nCount = 10;
 	//这里不能是EasyTcpClient的数组，因为栈的大小大约只有1M,这里会爆栈
 	EasyTcpClient* client[nCount];
 	for (int n = 0; n < nCount; ++n) {
+		if (!g_bRun) {
+			return 0;
+		}
 		client[n] = new EasyTcpClient();
+	}
+
+	for (int n = 0; n < nCount; ++n) {
+		if (!g_bRun) {
+			return 0;
+		}
 		client[n]->InitSocket();
 		client[n]->Connect("127.0.0.1", 4567);
+		printf("Connect=%d\n", n);
 	}
 
 	//启动UI线程
@@ -42,7 +52,7 @@ int main() {
 		//client.SendData(&login);
 		for (int n = 0; n < nCount; ++n) {
 			client[n]->SendData(&login);
-			client[n]->OnRun();
+			//client[n]->OnRun();
 		}
 	}
 

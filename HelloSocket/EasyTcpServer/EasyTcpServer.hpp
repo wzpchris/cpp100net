@@ -2,6 +2,7 @@
 #define _EASY_TCP_SERVER_HPP_
 
 #ifdef _WIN32
+	#define FD_SETSIZE 1024
 	#define WIN32_LEAN_AND_MEAN
 	#define _WINSOCK_DEPRECATED_NO_WARNINGS
 	#include <windows.h>
@@ -20,6 +21,7 @@
 #include <cstdio>
 #include <vector>
 #include "MessageHeader.hpp"
+#include "CellTimestamp.hpp"
 
 //缓冲区最小单元的大小
 #ifndef RECV_BUFF_SIZE
@@ -58,9 +60,12 @@ class EasyTcpServer {
 private:
 	SOCKET _sock;
 	std::vector<ClientSocket*> _clients;
+	CellTimestamp _tTime;
+	int _recvCount;
 public:
 	EasyTcpServer() {
 		_sock = INVALID_SOCKET;
+		_recvCount = 0;
 	}
 
 	virtual ~EasyTcpServer() {
@@ -163,7 +168,7 @@ public:
 			SendDataToAll(&userJoin);
 
 			_clients.push_back(new ClientSocket(cSock));
-			printf("new client: socket =%d, IP = %s \n", (int)cSock, inet_ntoa(clientAddr.sin_addr));
+			printf("new client[%d]: socket =%d, IP = %s \n", (int)_clients.size(), (int)cSock, inet_ntoa(clientAddr.sin_addr));
 		}
 
 		return cSock;
@@ -202,7 +207,7 @@ public:
 			FD_ZERO(&fdRead);
 			FD_ZERO(&fdWrite);
 			FD_ZERO(&fdExp);
-
+			 
 			FD_SET(_sock, &fdRead);
 			FD_SET(_sock, &fdWrite);
 			FD_SET(_sock, &fdExp);
@@ -299,6 +304,13 @@ public:
 	}
 	//响应网络消息
 	virtual void OnNetMsg(SOCKET cSock, DataHeader *header) {
+		_recvCount++;
+		auto t1 = _tTime.getElapsedSecond();
+		if (t1 >= 1.0) {
+			printf("time<%lf>, sock<%d>, clients<%d>, recvCount<%d>\n", t1, _sock, (int)_clients.size(),  _recvCount);
+			_recvCount = 0;
+			_tTime.update();
+		}
 		//6.处理请求
 		switch (header->cmd)
 		{
@@ -307,8 +319,8 @@ public:
 			Login *login = (Login*)header;
 			//printf("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login->dataLength, login->cmd, login->UserName, login->PassWord);
 			//忽略判断用户密码是否正确的过程
-			LoginResult ret;
-			SendData(cSock, &ret);
+			/*LoginResult ret;
+			SendData(cSock, &ret);*/
 		}
 		break;
 		case CMD_LOGOUT:
@@ -316,13 +328,13 @@ public:
 			LogOut *logout = (LogOut*)header;
 			//printf("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout->dataLength, logout->cmd, logout->UserName);
 			//忽略判断用户密码是否正确的过程
-			LogOutResult ret;
-			SendData(cSock, &ret);
+			/*LogOutResult ret;
+			SendData(cSock, &ret);*/
 		}
 		break;
 		default:
 		{
-			printf("recv unkown msglen=%d...\n", header->dataLength);
+			printf("recv unknow msglen=%d...\n", header->dataLength);
 			/*DataHeader ret;
 			SendData(cSock, header);*/
 		}

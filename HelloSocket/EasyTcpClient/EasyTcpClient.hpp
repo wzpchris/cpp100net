@@ -2,20 +2,20 @@
 #define _EASY_TCP_CLIENT_HPP_
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#include <windows.h>
-#include <WinSock2.h>  //这里会产生宏重复定义问题,需要添加宏定义WIN32_LEAN_AND_MEAN
-#pragma comment(lib, "ws2_32.lib")
+	#define FD_SETSIZE 1024
+	#define WIN32_LEAN_AND_MEAN
+	#define _WINSOCK_DEPRECATED_NO_WARNINGS
+	#include <windows.h>
+	#include <WinSock2.h>  //这里会产生宏重复定义问题,需要添加宏定义WIN32_LEAN_AND_MEAN
+	#pragma comment(lib, "ws2_32.lib")
 #else 
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <string.h>
+	#include <unistd.h>
+	#include <arpa/inet.h>
+	#include <string.h>
 
-#define SOCKET int
-#define INVALID_SOCKET (SOCKET)(~0)
-#define SOCKET_ERROR (-1)
-
+	#define SOCKET int
+	#define INVALID_SOCKET (SOCKET)(~0)
+	#define SOCKET_ERROR (-1)
 #endif
 #include <stdio.h>
 #include "MessageHeader.hpp"
@@ -54,7 +54,7 @@ public:
 			printf("socket error ...\n");
 		}
 		else {
-			printf("socket success sock=%d...\n", _sock);
+			//printf("socket success sock=%d...\n", _sock);
 		}
 	}
 
@@ -77,7 +77,7 @@ public:
 			printf("connect error sock=%d ip=%s:%d...\n", _sock, ip, port);
 		}
 		else {
-			printf("connect success sock=%d ip=%s:%d...\n", _sock, ip, port);
+			//printf("connect success sock=%d ip=%s:%d...\n", _sock, ip, port);
 		}
 
 		return ret;
