@@ -135,24 +135,53 @@ public:
 		return _sock != INVALID_SOCKET;
 	}
 
+	//缓冲区处理粘包与分包问题
+	//缓冲区最小单元的大小
+#ifndef RECV_BUFF_SIZE
+#define RECV_BUFF_SIZE 10240
+#endif 
+	//接收缓冲区
+	char _szRecv[RECV_BUFF_SIZE] = {}; //双缓冲
+	//第二缓冲区 消息缓冲区
+	char _szMsgBuf[RECV_BUFF_SIZE * 10] = {};
+	//消息缓冲区的数据尾部位置
+	int _lastPos = 0;
+
 	//接收数据 处理粘包 拆分包
-	int RecvData(SOCKET _cSock) {
-		//缓冲区处理粘包与分包问题
-		char szRecv[1024] = {};
-		//5.接收客户端数据
-		int nLen = recv(_cSock, szRecv, sizeof(DataHeader), 0);
-		DataHeader *header = (DataHeader*)szRecv;
+	int RecvData(SOCKET cSock) {
+		//5.接收数据
+		int nLen = recv(cSock, _szRecv, RECV_BUFF_SIZE, 0);
 		if (nLen <= 0) {
-			printf("connection break socket=%d exit\n", _cSock);
+			printf("connection break socket=%d exit\n", cSock);
 			return -1;
 		}
 
-		/*if (nLen >= header->dataLength) {
-
-		}*/
-
-		recv(_sock, szRecv + sizeof(DataHeader), header->dataLength - sizeof(DataHeader), 0);
-		OnNetMsg(header);
+		//将接收到的数据拷贝到消息缓冲区
+		memcpy(_szMsgBuf + _lastPos, _szRecv, nLen);
+		//消息缓冲区的数据尾部位置后移
+		_lastPos += nLen;
+		//判断消息缓冲区的数据长度大于消息头DataHeader长度
+		//这里的while是为了处理粘包
+		while(_lastPos >= sizeof(DataHeader)) {
+			//这时就可以知道当前消息体的长度
+			DataHeader *header = (DataHeader*)_szMsgBuf;
+			//判断消息缓冲区的数据长度大于消息长度 
+			//这里是为了处理少包问题
+			if (_lastPos >= header->dataLength) {
+				//消息缓冲区剩余未处理数据的长度
+				int nSize = _lastPos - header->dataLength;
+				//处理网路消息
+				OnNetMsg(header);
+				//消息缓冲区剩余未处理数据前移
+				memcpy(_szMsgBuf, _szMsgBuf + header->dataLength, nSize);
+				_lastPos = nSize;
+			}
+			else {
+				//剩余数据不够一条完整消息
+				break;
+			}
+		}
+		
 		return 0;
 	}
 
@@ -161,27 +190,35 @@ public:
 		//6.处理请求
 		switch (header->cmd)
 		{
-		case CMD_LOGIN_RESULT:
-		{
-			LoginResult *loginret = (LoginResult*)header;
-			printf("recv server CMD_LOGIN_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
-				loginret->dataLength, loginret->cmd, loginret->result);
-		}
-		break;
-		case CMD_LOGOUT_RESULT:
-		{
-			LogOutResult *logoutret = (LogOutResult*)header;
-			printf("recv server CMD_LOGOUT_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
-				logoutret->dataLength, logoutret->cmd, logoutret->result);
-		}
-		break;
-		case CMD_NEW_USER_JOIN:
-		{
-			NewUserJoin *newJoin = (NewUserJoin*)header;
-			printf("recv server CMD_NEW_USER_JOIN msg: [len=%d, cmd=%d, sock=%d]\n",
-				newJoin->dataLength, newJoin->cmd, newJoin->sock);
-		}
-		break;
+			case CMD_LOGIN_RESULT:
+			{
+				LoginResult *loginret = (LoginResult*)header;
+				/*printf("recv server CMD_LOGIN_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
+					loginret->dataLength, loginret->cmd, loginret->result);*/
+			}
+			break;
+			case CMD_LOGOUT_RESULT:
+			{
+				LogOutResult *logoutret = (LogOutResult*)header;
+				/*printf("recv server CMD_LOGOUT_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
+					logoutret->dataLength, logoutret->cmd, logoutret->result);*/
+			}
+			break;
+			case CMD_NEW_USER_JOIN:
+			{
+				NewUserJoin *newJoin = (NewUserJoin*)header;
+				/*printf("recv server CMD_NEW_USER_JOIN msg: [len=%d, cmd=%d, sock=%d]\n",
+					newJoin->dataLength, newJoin->cmd, newJoin->sock);*/
+			}
+			break;
+			case CMD_ERROR: 
+			{
+				printf("recv error msg len=%d...\n", header->dataLength);
+			}
+			break;
+			default: {
+				printf("recv unkown msglen=%d...\n", header->dataLength);
+			}
 		};
 	}
 
