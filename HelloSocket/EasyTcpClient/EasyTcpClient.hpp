@@ -2,7 +2,7 @@
 #define _EASY_TCP_CLIENT_HPP_
 
 #ifdef _WIN32
-	#define FD_SETSIZE 1024
+	#define FD_SETSIZE 2506
 	#define WIN32_LEAN_AND_MEAN
 	#define _WINSOCK_DEPRECATED_NO_WARNINGS
 	#include <windows.h>
@@ -223,9 +223,9 @@ public:
 	}
 
 	//发送数据
-	int SendData(DataHeader *header) {
+	int SendData(DataHeader *header, int nLen) {
 		if (IsRun() && header) {
-			return send(_sock, (const char *)header, header->dataLength, 0);
+			return send(_sock, (const char *)header, nLen, 0);
 		}
 		return SOCKET_ERROR;
 	}

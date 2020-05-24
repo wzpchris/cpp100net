@@ -20,7 +20,7 @@ void cmdThread() {
 }
 
 //客户端数量
-const int nCount = 1000;
+const int nCount = 10000;
 //发送线程数量
 const int tCount = 4;
 //这里不能是EasyTcpClient的数组，因为栈的大小大约只有1M,这里会爆栈
@@ -43,18 +43,22 @@ void sendThread(int id) {  //4个线程 ID 1-4
 		}
 		client[n]->InitSocket();
 		client[n]->Connect("127.0.0.1", 4567);
-		printf("Connect=%d\n", n);
+		printf("thread<%d>, Connect=%d\n", id, n);
 	}
 
-	Login login;
-	strcpy(login.UserName, "tom");
-	strcpy(login.PassWord, "tom");
+	std::chrono::milliseconds t(5000);
+	std::this_thread::sleep_for(t);
+
+	Login login[10];
+	for (int n = 0; n < 10; n++) {
+		strcpy(login[n].UserName, "tom");
+		strcpy(login[n].PassWord, "tom");
+	}
+	
+	const int nLen = sizeof(login);
 	while (g_bRun) {
-		//client.OnRun();
-		//client.SendData(&login);
 		for (int n = begin; n < end; ++n) {
-			client[n]->SendData(&login);
-			//client[n]->OnRun();
+			client[n]->SendData(login, nLen);
 		}
 	}
 
