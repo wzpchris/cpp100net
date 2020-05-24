@@ -168,7 +168,7 @@ public:
 			SendDataToAll(&userJoin);
 
 			_clients.push_back(new ClientSocket(cSock));
-			printf("new client[%d]: socket =%d, IP = %s \n", (int)_clients.size(), (int)cSock, inet_ntoa(clientAddr.sin_addr));
+			//printf("new client[%d]: socket =%d, IP = %s \n", (int)_clients.size(), (int)cSock, inet_ntoa(clientAddr.sin_addr));
 		}
 
 		return cSock;

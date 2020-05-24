@@ -19,30 +19,32 @@ void cmdThread() {
 	}
 }
 
-int main() {
-	const int nCount = 10;
-	//这里不能是EasyTcpClient的数组，因为栈的大小大约只有1M,这里会爆栈
-	EasyTcpClient* client[nCount];
-	for (int n = 0; n < nCount; ++n) {
+//客户端数量
+const int nCount = 1000;
+//发送线程数量
+const int tCount = 4;
+//这里不能是EasyTcpClient的数组，因为栈的大小大约只有1M,这里会爆栈
+EasyTcpClient* client[nCount];
+
+void sendThread(int id) {  //4个线程 ID 1-4
+	int c = nCount / tCount;
+	int begin = (id - 1) * c;
+	int end = id * c;
+	for (int n = begin; n < end; ++n) {
 		if (!g_bRun) {
-			return 0;
+			return;
 		}
 		client[n] = new EasyTcpClient();
 	}
 
-	for (int n = 0; n < nCount; ++n) {
+	for (int n = begin; n < end; ++n) {
 		if (!g_bRun) {
-			return 0;
+			return;
 		}
 		client[n]->InitSocket();
 		client[n]->Connect("127.0.0.1", 4567);
 		printf("Connect=%d\n", n);
 	}
-
-	//启动UI线程
-	std::thread t1(cmdThread);
-	//与主线程分离
-	t1.detach();
 
 	Login login;
 	strcpy(login.UserName, "tom");
@@ -50,16 +52,33 @@ int main() {
 	while (g_bRun) {
 		//client.OnRun();
 		//client.SendData(&login);
-		for (int n = 0; n < nCount; ++n) {
+		for (int n = begin; n < end; ++n) {
 			client[n]->SendData(&login);
 			//client[n]->OnRun();
 		}
 	}
 
-	for (int n = 0; n < nCount; ++n) {
+	for (int n = begin; n < end; ++n) {
 		client[n]->Close();
 	}
+}
+
+int main() {
+	//启动UI线程
+	std::thread t1(cmdThread);
+	//与主线程分离
+	t1.detach();
+
+	for (int n = 0; n < tCount; ++n) {
+		//启动发送线程
+		std::thread t1(sendThread, n + 1);
+		t1.detach();
+	}
+
+	while (g_bRun) {
+		Sleep(100);
+	}
+
 	printf("exit.\n");
-	getchar();
 	return 0;
 }
