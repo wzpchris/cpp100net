@@ -20,12 +20,33 @@ void cmdThread(EasyTcpServer *server) {
 	}
 }
 
+class MyClass:public EasyTcpServer
+{
+public:
+	MyClass() {}
+	~MyClass() {}
+	//客户端加入事件
+	virtual void OnNetJoin(ClientSocket *pClient) {
+
+	}
+	//客户端离开事件
+	virtual void OnNetLeave(ClientSocket *pClient) {
+
+	}
+	//客户端消息事件
+	virtual void OnNetMsg(ClientSocket *pClient, DataHeader *header) {
+
+	}
+private:
+
+};
+
 int main() {
 	EasyTcpServer server;
 	server.InitSocket();
 	server.Bind(nullptr, 4567);
 	server.Listen(5);
-	server.Start();
+	server.Start(4);
 
 	//启动UI线程
 	std::thread t1(cmdThread, &server);

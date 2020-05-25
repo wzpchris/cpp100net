@@ -27,6 +27,7 @@ const int tCount = 4;
 EasyTcpClient* client[nCount];
 
 void sendThread(int id) {  //4个线程 ID 1-4
+	printf("thread<%d>, start\n", id);
 	int c = nCount / tCount;
 	int begin = (id - 1) * c;
 	int end = id * c;
@@ -43,10 +44,10 @@ void sendThread(int id) {  //4个线程 ID 1-4
 		}
 		client[n]->InitSocket();
 		client[n]->Connect("127.0.0.1", 4567);
-		printf("thread<%d>, Connect=%d\n", id, n);
 	}
 
-	std::chrono::milliseconds t(5000);
+	printf("thread<%d>, Connect<begin=%d, end=%d>\n", id, begin, end);
+	std::chrono::milliseconds t(3000);
 	std::this_thread::sleep_for(t);
 
 	Login login[10];
@@ -64,7 +65,9 @@ void sendThread(int id) {  //4个线程 ID 1-4
 
 	for (int n = begin; n < end; ++n) {
 		client[n]->Close();
+		delete client[n];
 	}
+	printf("thread<%d>, exit\n", id);
 }
 
 int main() {

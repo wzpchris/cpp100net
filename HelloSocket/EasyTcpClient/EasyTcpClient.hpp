@@ -24,9 +24,11 @@
 class EasyTcpClient
 {
 	SOCKET _sock;
+	bool _isConnect;
 public:
 	EasyTcpClient() {
 		_sock = INVALID_SOCKET;
+		_isConnect = false;
 	}
 
 	virtual ~EasyTcpClient() {
@@ -77,6 +79,7 @@ public:
 			printf("connect error sock=%d ip=%s:%d...\n", _sock, ip, port);
 		}
 		else {
+			_isConnect = true;
 			//printf("connect success sock=%d ip=%s:%d...\n", _sock, ip, port);
 		}
 
@@ -95,6 +98,7 @@ public:
 			close(_sock);
 #endif
 			_sock = INVALID_SOCKET;
+			_isConnect = false;
 		}
 	}
 
@@ -132,7 +136,7 @@ public:
 
 	//是否工作
 	bool IsRun() {
-		return _sock != INVALID_SOCKET;
+		return _sock != INVALID_SOCKET && _isConnect;
 	}
 
 	//缓冲区处理粘包与分包问题
@@ -143,7 +147,7 @@ public:
 	//接收缓冲区
 	char _szRecv[RECV_BUFF_SIZE] = {}; //双缓冲
 	//第二缓冲区 消息缓冲区
-	char _szMsgBuf[RECV_BUFF_SIZE * 10] = {};
+	char _szMsgBuf[RECV_BUFF_SIZE * 5] = {};
 	//消息缓冲区的数据尾部位置
 	int _lastPos = 0;
 
@@ -224,10 +228,14 @@ public:
 
 	//发送数据
 	int SendData(DataHeader *header, int nLen) {
+		int ret = SOCKET_ERROR;
 		if (IsRun() && header) {
-			return send(_sock, (const char *)header, nLen, 0);
+			ret = send(_sock, (const char *)header, nLen, 0);
+			if (SOCKET_ERROR == ret) {
+				Close();
+			}
 		}
-		return SOCKET_ERROR;
+		return ret;
 	}
 private:
 
