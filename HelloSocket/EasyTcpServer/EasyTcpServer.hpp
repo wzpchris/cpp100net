@@ -20,6 +20,7 @@
 
 #include <cstdio>
 #include <vector>
+#include <map>
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -40,6 +41,14 @@ public:
 		memset(_szMsgBuf, 0, sizeof(_szMsgBuf));
 		_lastPos = 0;
 	}
+	~ClientSocket() {
+#ifdef _WIN32
+		closesocket(_sockfd);
+#else
+		close(_sockfd);
+#endif
+	}
+
 	SOCKET sockfd() {
 		return _sockfd;
 	}
@@ -102,17 +111,15 @@ public:
 	void Close() {
 		if (_sock != INVALID_SOCKET) {
 #ifdef _WIN32
-			for (auto s : _clients) {
-				closesocket(s->sockfd());
-				delete s;
+			for (auto iter : _clients) {
+				closesocket(iter.first);
+				delete iter.second;
 			}
-
-			//关闭套接字closesocket
 			closesocket(_sock);
 #else 
-			for (auto s : _clients) {
-				close(s->sockfd());
-				delete s;
+			for (auto iter : _clients) {
+				close(iter.first);
+				delete iter.second;
 			}
 			close(_sock);
 #endif
@@ -121,17 +128,24 @@ public:
 		}
 	}
 
+	//备份客户socket fd_set
+	fd_set _fdRead_bak;
+	//客户列表是否有变化
+	bool _clients_change;
+	SOCKET _maxSock;
 	//处理网络消息
 	bool OnRun() {
+		_clients_change = true;
 		while (IsRun()) {
 			if (_clientsBuff.size() > 0) 
 			{
 				//从缓冲队列里取出客户数据
 				std::lock_guard<std::mutex> lock(_mutex);
 				for (auto pClient : _clientsBuff) {
-					_clients.push_back(pClient);
+					_clients[pClient->sockfd()] = pClient;
 				}
 				_clientsBuff.clear();
+				_clients_change = true;
 			}
 
 			//如果没有需要处理的客户端，就跳过
@@ -149,44 +163,69 @@ public:
 			//FD_ZERO(&fdWrite);
 			//FD_ZERO(&fdExp);
 
-			SOCKET maxSock = _clients[0]->sockfd();
-			for (auto fd : _clients) {
-				FD_SET(fd->sockfd(), &fdRead);
-				if (fd->sockfd() > maxSock) {
-					maxSock = fd->sockfd();
+			if (_clients_change) {
+				_maxSock = (_clients.begin()->second)->sockfd();
+				for (auto iter : _clients) {
+					FD_SET(iter.first, &fdRead);
+					if (iter.first > _maxSock) {
+						_maxSock = iter.first;
+					}
 				}
+				memcpy(&_fdRead_bak, &fdRead, sizeof(fd_set));
+				_clients_change = false;
+			}
+			else {
+				memcpy(&fdRead, &_fdRead_bak, sizeof(fd_set));
 			}
 
 			//nfds是一个整数值，是指fd_set集合中所有描述符(socket)的范围，而不是数量
 			//即是所有文件描述符最大值+1，在windows中这个参数可以写0
 			//timeval t = { 0, 0 }; //这是是非阻塞，将导致单核CPU达到100%
 			//timeval t = { 1, 0 };
-			int ret = select(maxSock + 1, &fdRead, nullptr, nullptr, nullptr);
+			int ret = select(_maxSock + 1, &fdRead, nullptr, nullptr, nullptr);
 			if (ret < 0) {
 				printf("select error exit\n");
 				Close();
 				return false;
 			}
-
-			for (int n = (int)_clients.size() - 1; n >= 0; --n) {
-				if (FD_ISSET(_clients[n]->sockfd(), &fdRead)) {
-					if (-1 == RecvData(_clients[n])) {
-						auto iter = _clients.begin() + n;
-						if (iter != _clients.end()) {
-							if (_pNetEvent) {
-								_pNetEvent->OnNetLeave(_clients[n]);
-							}
+			else if(ret == 0) {
+				continue;
+			}
+			
 #ifdef _WIN32
-							closesocket(_clients[n]->sockfd());
-#else
-							close(_clients[n]->sockfd());
-#endif
-							delete _clients[n];
-							_clients.erase(iter);
+			for (int n = 0; n < fdRead.fd_count; ++n) {
+				auto iter = _clients.find(fdRead.fd_array[n]);
+				if (iter != _clients.end()) {
+					if (-1 == RecvData(iter->second)) {
+						if (_pNetEvent) {
+							_pNetEvent->OnNetLeave(iter->second);
 						}
+						_clients_change = true;
+						_clients.erase(iter->first);
+					}
+				}
+				else {
+					printf("error, if (iter != _clients.end())\n ");
+				}
+			}
+#else	
+			std::vector<ClientSocket*> temp;
+			for (auto iter : _clients) {
+				if (FD_ISSET(iter.first, &fdRead)) {
+					if (-1 == RecvData(iter.second)) {
+						if (_pNetEvent) {
+							_pNetEvent->OnNetLeave(iter.second);
+						}
+						_clients_change = true;
+						temp.push_back(iter.second);
 					}
 				}
 			}
+			for (auto pClient : temp) {
+				_clients.erase(pClient->sockfd());
+				delete pClient;
+			}
+#endif
 		}
 		return false;
 	}
@@ -240,8 +279,8 @@ public:
 				Login *login = (Login*)header;
 				//printf("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login->dataLength, login->cmd, login->UserName, login->PassWord);
 				//忽略判断用户密码是否正确的过程
-				LoginResult ret;
-				pClient->SendData(&ret);
+				/*LoginResult ret;
+				pClient->SendData(&ret);*/
 			}
 			break;
 			case CMD_LOGOUT:
@@ -249,8 +288,8 @@ public:
 				LogOut *logout = (LogOut*)header;
 				//printf("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout->dataLength, logout->cmd, logout->UserName);
 				//忽略判断用户密码是否正确的过程
-				LogOutResult ret;
-				pClient->SendData(&ret);
+				/*LogOutResult ret;
+				pClient->SendData(&ret);*/
 			}
 			break;
 			default:
@@ -280,7 +319,7 @@ public:
 private:
 	SOCKET _sock;
 	//正式客户队列
-	std::vector<ClientSocket*> _clients;
+	std::map<SOCKET, ClientSocket*> _clients;
 	//客户缓冲区
 	std::vector<ClientSocket*> _clientsBuff;
 	//缓冲队列的锁

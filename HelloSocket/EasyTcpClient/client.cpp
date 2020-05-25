@@ -60,6 +60,7 @@ void sendThread(int id) {  //4个线程 ID 1-4
 	while (g_bRun) {
 		for (int n = begin; n < end; ++n) {
 			client[n]->SendData(login, nLen);
+			//client[n]->OnRun();
 		}
 	}
 
