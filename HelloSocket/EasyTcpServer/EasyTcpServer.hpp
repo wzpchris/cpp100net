@@ -30,7 +30,8 @@
 
 //缓冲区最小单元的大小
 #ifndef RECV_BUFF_SIZE
-#define RECV_BUFF_SIZE 10240
+#define RECV_BUFF_SIZE (10240 * 5)
+#define SEND_BUFF_SIZE RECV_BUFF_SIZE
 #endif 
 
 // 客户端数据类型
@@ -38,8 +39,10 @@ class ClientSocket {
 public:
 	ClientSocket(SOCKET sockfd = INVALID_SOCKET) {
 		_sockfd = sockfd;
-		memset(_szMsgBuf, 0, sizeof(_szMsgBuf));
+		memset(_szMsgBuf, 0, RECV_BUFF_SIZE);
 		_lastPos = 0;
+		memset(_szSendBuf, 0, SEND_BUFF_SIZE);
+		_lastSendPos = 0;
 	}
 	~ClientSocket() {
 #ifdef _WIN32
@@ -64,17 +67,55 @@ public:
 	}
 	//发送指定Socket数据
 	int SendData(DataHeader *header) {
-		if (header) {
-			return send(_sockfd, (const char *)header, header->dataLength, 0);
+		int ret = SOCKET_ERROR;
+		//要发送的数据长度
+		int nSendLen = header->dataLength;
+		//要发送的数据
+		const char* pSendData = (const char*)header;
+
+		//这里的while循环主要是将剩余的消息也放入发送缓冲区
+		while (true) {
+			if (_lastSendPos + nSendLen >= SEND_BUFF_SIZE) {
+				//计算可拷贝的数据长度
+				int nCopyLen = SEND_BUFF_SIZE - _lastSendPos;
+				//拷贝数据
+				memcpy(_szSendBuf + _lastSendPos, pSendData, nCopyLen);
+
+				//计算剩余数据位置
+				pSendData += nCopyLen;
+				//计算剩余数据长度
+				nSendLen -= nCopyLen;
+				//发送数据
+				ret = send(_sockfd, _szSendBuf, SEND_BUFF_SIZE, 0);
+				//数据尾部位置置0
+				_lastSendPos = 0;
+				//发送错误
+				if (SOCKET_ERROR == ret) {
+					return ret;
+				}
+			}
+			else {
+				//将要发送的数据 拷贝到发送缓冲区尾部
+				memcpy(_szSendBuf + _lastSendPos, pSendData, nSendLen);
+				//数据尾部变化
+				_lastSendPos += nSendLen;
+				break;
+			}
 		}
-		return SOCKET_ERROR;
+
+		return ret;
 	}
 private:
 	SOCKET _sockfd;  
 	//第二缓冲区 消息缓冲区
-	char _szMsgBuf[RECV_BUFF_SIZE * 5];
+	char _szMsgBuf[RECV_BUFF_SIZE];
 	//消息缓冲区的数据尾部位置
 	int _lastPos;
+
+	//发送缓冲区
+	char _szSendBuf[SEND_BUFF_SIZE];
+	//消息缓冲区的数据尾部位置
+	int _lastSendPos;
 };
 
 //网络事件接口
@@ -238,7 +279,7 @@ public:
 	int RecvData(ClientSocket *pClient) {
 		//接收数据
 		char *szRecv = pClient->msgBuf() + pClient->getLastPos();
-		int nLen = (int)recv(pClient->sockfd(), szRecv, RECV_BUFF_SIZE * 5 - pClient->getLastPos(), 0);
+		int nLen = (int)recv(pClient->sockfd(), szRecv, RECV_BUFF_SIZE - pClient->getLastPos(), 0);
 		_pNetEvent->OnNetRecv(pClient);
 		if (nLen <= 0) {
 			//printf("client socket=%d exit\n", pClient->sockfd());
