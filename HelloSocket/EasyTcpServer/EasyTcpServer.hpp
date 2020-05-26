@@ -27,6 +27,7 @@
 
 #include "MessageHeader.hpp"
 #include "CellTimestamp.hpp"
+#include "CellTask.hpp"
 
 //缓冲区最小单元的大小
 #ifndef RECV_BUFF_SIZE
@@ -118,6 +119,7 @@ private:
 	int _lastSendPos;
 };
 
+class CellServer;
 //网络事件接口
 class INetEvent {
 public:
@@ -126,11 +128,30 @@ public:
 	//客户端离开事件
 	virtual void OnNetLeave(ClientSocket *pClient) = 0; //纯虚函数
 	//客户端消息事件
-	virtual void OnNetMsg(ClientSocket *pClient, DataHeader *header) = 0;
+	virtual void OnNetMsg(CellServer *pCellServer, ClientSocket *pClient, DataHeader *header) = 0;
 	//recv事件
 	virtual void OnNetRecv(ClientSocket *pClient) = 0;
 };
 
+//网络消息发送任务
+class CellSendMsg2ClientTask:public CellTask {
+private:
+	ClientSocket *_pClient;
+	DataHeader *_pHeader;
+public:
+	CellSendMsg2ClientTask(ClientSocket *pClient, DataHeader *pHeader)  {
+		_pClient = pClient;
+		_pHeader = pHeader;
+	}
+
+	//执行任务
+	virtual void doTask() {
+		_pClient->SendData(_pHeader);
+		delete _pHeader;
+	}
+};
+
+//网络消息接收服务类
 class CellServer {
 public:
 	CellServer(SOCKET sock = INVALID_SOCKET) { 
@@ -177,10 +198,10 @@ public:
 	bool _clients_change;
 	SOCKET _maxSock;
 	//处理网络消息
-	bool OnRun() {
+	void OnRun() {
 		_clients_change = true;
 		while (IsRun()) {
-			if (_clientsBuff.size() > 0) 
+			if (!_clientsBuff.empty()) 
 			{
 				//从缓冲队列里取出客户数据
 				std::lock_guard<std::mutex> lock(_mutex);
@@ -229,7 +250,7 @@ public:
 			if (ret < 0) {
 				printf("select error exit\n");
 				Close();
-				return false;
+				return;
 			}
 			else if(ret == 0) {
 				continue;
@@ -270,7 +291,6 @@ public:
 			}
 #endif
 		}
-		return false;
 	}
 
 	//缓冲区处理粘包与分包问题
@@ -315,39 +335,7 @@ public:
 	}
 	//响应网络消息
 	virtual void OnNetMsg(ClientSocket *pClient, DataHeader *header) {
-		_pNetEvent->OnNetMsg(pClient, header);
-		//6.处理请求
-		switch (header->cmd)
-		{
-			case CMD_LOGIN:
-			{
-				Login *login = (Login*)header;
-				//printf("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login->dataLength, login->cmd, login->UserName, login->PassWord);
-				//忽略判断用户密码是否正确的过程
-				LoginResult ret;
-				pClient->SendData(&ret);
-				//发送数据 这里的发送有性能瓶颈
-				//接收 消息  -->  处理发送
-				//生产者  数据缓冲区  消费者
-			}
-			break;
-			case CMD_LOGOUT:
-			{
-				LogOut *logout = (LogOut*)header;
-				//printf("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout->dataLength, logout->cmd, logout->UserName);
-				//忽略判断用户密码是否正确的过程
-				LogOutResult ret;
-				pClient->SendData(&ret);
-			}
-			break;
-			default:
-			{
-				printf("recv unknow sock=%d, msglen=%d...\n", pClient->sockfd(), header->dataLength);
-				/*DataHeader ret;
-				pClient->SendData(&ret);*/
-			}
-			break;
-		};
+		_pNetEvent->OnNetMsg(this, pClient, header);
 	}
 
 	void addClient(ClientSocket *pClient) {
@@ -359,10 +347,16 @@ public:
 
 	void Start() {
 		_thread = std::thread(std::mem_fn(&CellServer::OnRun), this);
+		_taskServer.Start();
 	}
 
 	size_t getClientCount() {
 		return _clients.size() + _clientsBuff.size();
+	}
+
+	void addSendTask(ClientSocket *pClient, DataHeader *header) {
+		CellSendMsg2ClientTask *task = new CellSendMsg2ClientTask(pClient, header);
+		_taskServer.addTask(task);
 	}
 private:
 	SOCKET _sock;
@@ -375,6 +369,8 @@ private:
 	std::thread _thread;
 	//网络事件对象
 	INetEvent *_pNetEvent;
+	//
+	CellTaskServer _taskServer;
 };
 
 class EasyTcpServer:public INetEvent {
@@ -595,7 +591,7 @@ public:
 
 	//cellServer 4 多个线程触发 不安全
 	//如果只开启1个cellServer就是安全的
-	virtual void OnNetMsg(ClientSocket *pClient, DataHeader *header) {
+	virtual void OnNetMsg(CellServer *pCellServer, ClientSocket *pClient, DataHeader *header) {
 		_msgCount++;
 	}
 
