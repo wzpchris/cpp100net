@@ -233,18 +233,19 @@ public:
 	}
 
 	//缓冲区处理粘包与分包问题
-	char _szRecv[RECV_BUFF_SIZE] = {};
+	//char _szRecv[RECV_BUFF_SIZE] = {};
 	//接收数据 处理粘包 拆分包
 	int RecvData(ClientSocket *pClient) {
-		//5.接收数据
-		int nLen = (int)recv(pClient->sockfd(), _szRecv, 1, 0);
+		//接收数据
+		char *szRecv = pClient->msgBuf() + pClient->getLastPos();
+		int nLen = (int)recv(pClient->sockfd(), szRecv, RECV_BUFF_SIZE * 5 - pClient->getLastPos(), 0);
 		_pNetEvent->OnNetRecv(pClient);
 		if (nLen <= 0) {
 			//printf("client socket=%d exit\n", pClient->sockfd());
 			return -1;
 		}
 		//将接收到的数据拷贝到消息缓冲区
-		memcpy(pClient->msgBuf() + pClient->getLastPos(), _szRecv, nLen);
+		//memcpy(pClient->msgBuf() + pClient->getLastPos(), _szRecv, nLen);
 		//消息缓冲区的数据尾部位置后移
 		pClient->setLastPos(pClient->getLastPos() + nLen);
 
@@ -282,8 +283,11 @@ public:
 				Login *login = (Login*)header;
 				//printf("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login->dataLength, login->cmd, login->UserName, login->PassWord);
 				//忽略判断用户密码是否正确的过程
-				/*LoginResult ret;
-				pClient->SendData(&ret);*/
+				LoginResult ret;
+				pClient->SendData(&ret);
+				//发送数据 这里的发送有性能瓶颈
+				//接收 消息  -->  处理发送
+				//生产者  数据缓冲区  消费者
 			}
 			break;
 			case CMD_LOGOUT:
@@ -291,15 +295,15 @@ public:
 				LogOut *logout = (LogOut*)header;
 				//printf("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout->dataLength, logout->cmd, logout->UserName);
 				//忽略判断用户密码是否正确的过程
-				/*LogOutResult ret;
-				pClient->SendData(&ret);*/
+				LogOutResult ret;
+				pClient->SendData(&ret);
 			}
 			break;
 			default:
 			{
 				printf("recv unknow sock=%d, msglen=%d...\n", pClient->sockfd(), header->dataLength);
 				/*DataHeader ret;
-				SendData(cSock, header);*/
+				pClient->SendData(&ret);*/
 			}
 			break;
 		};

@@ -58,8 +58,8 @@ void sendThread(int id) {  //4个线程 ID 1-4
 		std::this_thread::sleep_for(t);
 	}
 
-	Login login[1];
-	for (int n = 0; n < 1; n++) {
+	Login login[10];
+	for (int n = 0; n < 10; n++) {
 		strcpy(login[n].UserName, "tom");
 		strcpy(login[n].PassWord, "tom");
 	}
@@ -70,7 +70,7 @@ void sendThread(int id) {  //4个线程 ID 1-4
 			if (SOCKET_ERROR != client[n]->SendData(login, nLen)) {
 				sendCount++;
 			}
-			//client[n]->OnRun();
+			client[n]->OnRun();
 		}
 	}
 
@@ -97,7 +97,7 @@ int main() {
 	while (g_bRun) {
 		auto t = tTime.getElapsedSecond();
 		if (t >= 1.0) {
-			printf("thread<%d>,clients<%d>,time<%lf>,send<%d>\n", tCount, nCount, t, (int)sendCount);
+			printf("thread<%d>,clients<%d>,time<%lf>,send<%d>\n", tCount, nCount, t, (int)(sendCount / t));
 			sendCount = 0;
 			tTime.update();
 		}
