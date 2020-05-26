@@ -1,7 +1,9 @@
 #include "EasyTcpClient.hpp"
+#include "CellTimestamp.hpp"
 
 #include <cstdio>
 #include <thread>    //c++标准线程库
+#include <atomic>
 
 bool g_bRun = true;
 void cmdThread() {
@@ -25,6 +27,8 @@ const int nCount = 10000;
 const int tCount = 4;
 //这里不能是EasyTcpClient的数组，因为栈的大小大约只有1M,这里会爆栈
 EasyTcpClient* client[nCount];
+std::atomic_int sendCount = 0;
+std::atomic_int readyCount = 0;
 
 void sendThread(int id) {  //4个线程 ID 1-4
 	printf("thread<%d>, start\n", id);
@@ -47,11 +51,15 @@ void sendThread(int id) {  //4个线程 ID 1-4
 	}
 
 	printf("thread<%d>, Connect<begin=%d, end=%d>\n", id, begin, end);
-	std::chrono::milliseconds t(3000);
-	std::this_thread::sleep_for(t);
+	
+	readyCount++;
+	while (readyCount < tCount) { //等待其他线程准备好发送数据
+		std::chrono::milliseconds t(3000);
+		std::this_thread::sleep_for(t);
+	}
 
-	Login login[10];
-	for (int n = 0; n < 10; n++) {
+	Login login[1];
+	for (int n = 0; n < 1; n++) {
 		strcpy(login[n].UserName, "tom");
 		strcpy(login[n].PassWord, "tom");
 	}
@@ -59,7 +67,9 @@ void sendThread(int id) {  //4个线程 ID 1-4
 	const int nLen = sizeof(login);
 	while (g_bRun) {
 		for (int n = begin; n < end; ++n) {
-			client[n]->SendData(login, nLen);
+			if (SOCKET_ERROR != client[n]->SendData(login, nLen)) {
+				sendCount++;
+			}
 			//client[n]->OnRun();
 		}
 	}
@@ -83,8 +93,15 @@ int main() {
 		t1.detach();
 	}
 
+	CellTimestamp tTime;
 	while (g_bRun) {
-		Sleep(100);
+		auto t = tTime.getElapsedSecond();
+		if (t >= 1.0) {
+			printf("thread<%d>,clients<%d>,time<%lf>,send<%d>\n", tCount, nCount, t, (int)sendCount);
+			sendCount = 0;
+			tTime.update();
+		}
+		Sleep(1);
 	}
 
 	printf("exit.\n");
