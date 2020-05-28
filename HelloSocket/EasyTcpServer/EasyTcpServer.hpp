@@ -24,10 +24,12 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <memory>
 
 #include "MessageHeader.hpp"
 #include "CellTimestamp.hpp"
 #include "CellTask.hpp"
+#include "CellObjectPool.hpp"
 
 //缓冲区最小单元的大小
 #ifndef RECV_BUFF_SIZE
@@ -35,8 +37,12 @@
 #define SEND_BUFF_SIZE RECV_BUFF_SIZE
 #endif 
 
+using DataHeaderPtr = std::shared_ptr<DataHeader>;
+using LoginResultPtr = std::shared_ptr<LoginResult>;
+using LogOutResultPtr = std::shared_ptr<LogOutResult>;
+
 // 客户端数据类型
-class ClientSocket {
+class ClientSocket: public ObjectPoolBase<ClientSocket, 1000> {
 public:
 	ClientSocket(SOCKET sockfd = INVALID_SOCKET) {
 		_sockfd = sockfd;
@@ -67,12 +73,12 @@ public:
 		_lastPos = pos;
 	}
 	//发送指定Socket数据
-	int SendData(DataHeader *header) {
+	int SendData(DataHeaderPtr& header) {
 		int ret = SOCKET_ERROR;
 		//要发送的数据长度
 		int nSendLen = header->dataLength;
 		//要发送的数据
-		const char* pSendData = (const char*)header;
+		const char* pSendData = (const char*)header.get();
 
 		//这里的while循环主要是将剩余的消息也放入发送缓冲区
 		while (true) {
@@ -119,27 +125,29 @@ private:
 	int _lastSendPos;
 };
 
+using ClientSocketPtr = std::shared_ptr<ClientSocket>;
+
 class CellServer;
 //网络事件接口
 class INetEvent {
 public:
 	//客户端加入事件
-	virtual void OnNetJoin(ClientSocket *pClient) = 0; //纯虚函数
+	virtual void OnNetJoin(const ClientSocketPtr& pClient) = 0; //纯虚函数
 	//客户端离开事件
-	virtual void OnNetLeave(ClientSocket *pClient) = 0; //纯虚函数
+	virtual void OnNetLeave(const ClientSocketPtr& pClient) = 0; //纯虚函数
 	//客户端消息事件
-	virtual void OnNetMsg(CellServer *pCellServer, ClientSocket *pClient, DataHeader *header) = 0;
+	virtual void OnNetMsg(CellServer *pCellServer, const ClientSocketPtr& pClient, DataHeader *header) = 0;
 	//recv事件
-	virtual void OnNetRecv(ClientSocket *pClient) = 0;
+	virtual void OnNetRecv(const ClientSocketPtr& pClient) = 0;
 };
 
 //网络消息发送任务
-class CellSendMsg2ClientTask:public CellTask {
+class CellS2CTask:public CellTask {
 private:
-	ClientSocket *_pClient;
-	DataHeader *_pHeader;
+	ClientSocketPtr _pClient;
+	DataHeaderPtr _pHeader;
 public:
-	CellSendMsg2ClientTask(ClientSocket *pClient, DataHeader *pHeader)  {
+	CellS2CTask(const ClientSocketPtr& pClient, const DataHeaderPtr& pHeader)  {
 		_pClient = pClient;
 		_pHeader = pHeader;
 	}
@@ -147,9 +155,11 @@ public:
 	//执行任务
 	virtual void doTask() {
 		_pClient->SendData(_pHeader);
-		delete _pHeader;
 	}
 };
+
+//typedef std::shared_ptr<CellS2CTask> CellS2CTaskPtr;
+using CellS2CTaskPtr = std::shared_ptr<CellS2CTask>;
 
 //网络消息接收服务类
 class CellServer {
@@ -177,13 +187,11 @@ public:
 #ifdef _WIN32
 			for (auto iter : _clients) {
 				closesocket(iter.first);
-				delete iter.second;
 			}
 			closesocket(_sock);
 #else 
 			for (auto iter : _clients) {
 				close(iter.first);
-				delete iter.second;
 			}
 			close(_sock);
 #endif
@@ -273,7 +281,7 @@ public:
 				}
 			}
 #else	
-			std::vector<ClientSocket*> temp;
+			std::vector<ClientSocketPtr > temp;
 			for (auto iter : _clients) {
 				if (FD_ISSET(iter.first, &fdRead)) {
 					if (-1 == RecvData(iter.second)) {
@@ -287,7 +295,6 @@ public:
 			}
 			for (auto pClient : temp) {
 				_clients.erase(pClient->sockfd());
-				delete pClient;
 			}
 #endif
 		}
@@ -296,7 +303,7 @@ public:
 	//缓冲区处理粘包与分包问题
 	//char _szRecv[RECV_BUFF_SIZE] = {};
 	//接收数据 处理粘包 拆分包
-	int RecvData(ClientSocket *pClient) {
+	int RecvData(ClientSocketPtr& pClient) {
 		//接收数据
 		char *szRecv = pClient->msgBuf() + pClient->getLastPos();
 		int nLen = (int)recv(pClient->sockfd(), szRecv, RECV_BUFF_SIZE - pClient->getLastPos(), 0);
@@ -334,11 +341,11 @@ public:
 		return 0;
 	}
 	//响应网络消息
-	virtual void OnNetMsg(ClientSocket *pClient, DataHeader *header) {
+	virtual void OnNetMsg(ClientSocketPtr& pClient, DataHeader *header) {
 		_pNetEvent->OnNetMsg(this, pClient, header);
 	}
 
-	void addClient(ClientSocket *pClient) {
+	void addClient(const ClientSocketPtr& pClient) {
 		//_mutex.lock();
 		std::lock_guard<std::mutex> lock(_mutex);
 		_clientsBuff.push_back(pClient);
@@ -354,16 +361,17 @@ public:
 		return _clients.size() + _clientsBuff.size();
 	}
 
-	void addSendTask(ClientSocket *pClient, DataHeader *header) {
-		CellSendMsg2ClientTask *task = new CellSendMsg2ClientTask(pClient, header);
-		_taskServer.addTask(task);
+	void addSendTask(const ClientSocketPtr& pClient, const DataHeaderPtr& header) {
+		auto task = std::make_shared<CellS2CTask>(pClient, header);
+		//CellS2CTask *task = new CellS2CTask(pClient, header);
+		_taskServer.addTask((CellTaskPtr)task);
 	}
 private:
 	SOCKET _sock;
 	//正式客户队列
-	std::map<SOCKET, ClientSocket*> _clients;
+	std::map<SOCKET, ClientSocketPtr> _clients;
 	//客户缓冲区
-	std::vector<ClientSocket*> _clientsBuff;
+	std::vector<ClientSocketPtr> _clientsBuff;
 	//缓冲队列的锁
 	std::mutex _mutex;
 	std::thread _thread;
@@ -373,11 +381,13 @@ private:
 	CellTaskServer _taskServer;
 };
 
+using CellServerPtr = std::shared_ptr<CellServer>;
+
 class EasyTcpServer:public INetEvent {
 private:
 	SOCKET _sock;
 	//消息处理对象，内部会创建线程
-	std::vector<CellServer*> _cellServers;
+	std::vector<CellServerPtr> _cellServers;
 	//每秒消息计时
 	CellTimestamp _tTime;
 protected:
@@ -491,14 +501,17 @@ public:
 		}
 		else {
 			//将新客户端分配给客户数量最少的cellServer
-			addClientToCellServer(new ClientSocket(cSock));
+			ClientSocketPtr c(new ClientSocket(cSock));
+			//这里使用make_shared不会进入对象池分配内存
+			//addClientToCellServer(std::make_shared<ClientSocket>(cSock));
+			addClientToCellServer(c);
 			//获取ID地址 inet_ntoa(clientAddr.sin_addr)
 		}
 
 		return cSock;
 	}
 
-	void addClientToCellServer(ClientSocket *pClient) {
+	void addClientToCellServer(const ClientSocketPtr& pClient) {
 		//查找客户数量最少的
 		auto pMinServer = _cellServers[0];
 		for (auto pCellServer : _cellServers) {
@@ -513,7 +526,8 @@ public:
 	void Start(int nCellServer) {
 
 		for (int n = 0; n < nCellServer; n++) {
-			auto ser = new CellServer(_sock);
+			//auto ser = new CellServer(_sock);
+			auto ser = std::make_shared<CellServer>(_sock);
 			_cellServers.push_back(ser);
 			//注册网络事件接收对象
 			ser->setEventObj(this);
@@ -580,22 +594,22 @@ public:
 		}
 	}
 	//只会被一个线程调用
-	virtual void OnNetJoin(ClientSocket *pClient) {
+	virtual void OnNetJoin(const ClientSocketPtr& pClient) {
 		_clientCount++;
 	}
 	//cellServer 4 多个线程触发 不安全
 	//如果只开启1个cellServer就是安全的
-	virtual void OnNetLeave(ClientSocket *pClient) {
+	virtual void OnNetLeave(const ClientSocketPtr& pClient) {
 		_clientCount--;
 	}
 
 	//cellServer 4 多个线程触发 不安全
 	//如果只开启1个cellServer就是安全的
-	virtual void OnNetMsg(CellServer *pCellServer, ClientSocket *pClient, DataHeader *header) {
+	virtual void OnNetMsg(CellServer *pCellServer, const ClientSocketPtr& pClient, DataHeader *header) {
 		_msgCount++;
 	}
 
-	virtual void OnNetRecv(ClientSocket *pClient) {
+	virtual void OnNetRecv(const ClientSocketPtr& pClient) {
 		_recvCount++;
 	}
 };

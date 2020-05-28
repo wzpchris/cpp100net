@@ -6,10 +6,14 @@
 #include <mutex>
 
 #ifdef _DEBUG
-#include <stdio.h>
-	#define xPrintf(...) printf(__VA_ARGS__)
+	#ifndef xPrintf
+		#include <stdio.h>
+		#define xPrintf(...) printf(__VA_ARGS__)
+	#endif
 #else 
-	#define xPrintf(...)
+	#ifndef xPrintf
+		#define xPrintf(...)
+	#endif
 #endif //_DEBUG
 
 #define MAX_MEMORY_SIZE 1024
@@ -78,13 +82,14 @@ public:
 			pReturn->_nRef = 1;
 		}
 
-		//xPrintf("allocMemory: %llx, id=%d, size=%d\n", pReturn, pReturn->_nID, size);
+		xPrintf("allocMemory: %llx, id=%d, size=%d\n", pReturn, pReturn->_nID, size);
 		return ((char*)pReturn + sizeof(MemoryBlock));
 	}
 
 	//释放内存
 	void freeMemory(void *pMem) {
 		MemoryBlock *pBlock = (MemoryBlock*)(((char*)pMem) - sizeof(MemoryBlock));
+		xPrintf("freeMemory: %llx, id=%d, ref=%d\n", pBlock, pBlock->_nID, pBlock->_nRef);
 		if (pBlock->_bPool) {
 			std::lock_guard<std::mutex> lock(_mutex);
 			if (--(pBlock->_nRef) != 0) {
@@ -192,14 +197,14 @@ public:
 			pReturn->_nRef = 1;
 			pReturn->_pAlloc = nullptr;
 			pReturn->_pNext = nullptr;
-			//xPrintf("allocMem: %llx, id=%d, size=%d\n", pReturn, pReturn->_nID, nSize);
+			xPrintf("allocMem: %llx, id=%d, size=%d\n", pReturn, pReturn->_nID, nSize);
 			return ((char*)pReturn + sizeof(MemoryBlock));
 		}
 	}
 	//释放内存
 	void freeMem(void *pMem) {
 		MemoryBlock *pBlock = (MemoryBlock*)(((char*)pMem) - sizeof(MemoryBlock));
-		//xPrintf("freeMem: %llx, id=%d, ref=%d\n", pBlock, pBlock->_nID, pBlock->_nRef);
+		xPrintf("freeMem: %llx, id=%d, ref=%d\n", pBlock, pBlock->_nID, pBlock->_nRef);
 		if (pBlock->_bPool) {
 			pBlock->_pAlloc->freeMemory(pMem);
 		}

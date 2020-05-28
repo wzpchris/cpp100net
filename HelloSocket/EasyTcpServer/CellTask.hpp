@@ -26,14 +26,17 @@ public:
 	}
 };
 
+//typedef std::shared_ptr<CellTask> CellTaskPtr;
+using CellTaskPtr = std::shared_ptr<CellTask>;
+
 //执行任务服务类型
 class CellTaskServer
 {
 private:
 	//任务数据
-	std::list<CellTask*> _tasks;
+	std::list<CellTaskPtr> _tasks;
 	//任务数据缓冲区
-	std::list<CellTask*> _tasksBuf;
+	std::list<CellTaskPtr> _tasksBuf;
 	//改变数据缓冲区时需要加锁
 	std::mutex _mutex;
 public:
@@ -43,7 +46,7 @@ public:
 	}
 
 	//添加任务
-	void addTask(CellTask *task) {
+	void addTask(CellTaskPtr task) {
 		std::lock_guard<std::mutex> lock(_mutex);
 		_tasksBuf.push_back(task);
 
@@ -78,7 +81,6 @@ protected:
 			//处理任务
 			for (auto pTask : _tasks) {
 				pTask->doTask();
-				delete pTask;
 			}
 			//清空任务
 			_tasks.clear();

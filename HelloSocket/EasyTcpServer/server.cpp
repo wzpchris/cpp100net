@@ -27,15 +27,15 @@ public:
 	MyServer() {}
 	~MyServer() {}
 	//客户端加入事件
-	virtual void OnNetJoin(ClientSocket *pClient) {
+	virtual void OnNetJoin(const ClientSocketPtr& pClient) {
 		EasyTcpServer::OnNetJoin(pClient);
 	}
 	//客户端离开事件
-	virtual void OnNetLeave(ClientSocket *pClient) {
+	virtual void OnNetLeave(const ClientSocketPtr& pClient) {
 		EasyTcpServer::OnNetLeave(pClient);
 	}
 	//客户端消息事件
-	virtual void OnNetMsg(CellServer *pCellServer, ClientSocket *pClient, DataHeader *header) {
+	virtual void OnNetMsg(CellServer *pCellServer, const ClientSocketPtr& pClient, DataHeader *header) {
 		EasyTcpServer::OnNetMsg(pCellServer, pClient, header);
 		//6.处理请求
 		switch (header->cmd)
@@ -50,8 +50,9 @@ public:
 				//生产者  数据缓冲区  消费者
 				/*LoginResult ret;
 				pClient->SendData(&ret);*/
-				LoginResult *ret = new LoginResult();	
-				pCellServer->addSendTask(pClient, ret);
+				//LoginResult *ret = new LoginResult();	
+				auto ret = std::make_shared<LoginResult>();
+				pCellServer->addSendTask(pClient, (DataHeaderPtr)ret);
 			}
 			break;
 			case CMD_LOGOUT:
@@ -61,7 +62,8 @@ public:
 				//忽略判断用户密码是否正确的过程
 				/*LogOutResult ret;
 				pClient->SendData(&ret);*/
-				LogOutResult *ret = new LogOutResult();
+				//LogOutResult *ret = new LogOutResult();
+				auto ret = std::make_shared<LogOutResult>();
 				pCellServer->addSendTask(pClient, ret);
 			}
 			break;
@@ -75,7 +77,7 @@ public:
 		};
 	}
 
-	virtual void OnNetRecv(ClientSocket *pClient) {
+	virtual void OnNetRecv(const ClientSocketPtr& pClient) {
 		EasyTcpServer::OnNetRecv(pClient);
 	}
 };

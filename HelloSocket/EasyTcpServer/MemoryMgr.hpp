@@ -70,6 +70,7 @@ public:
 			pReturn->_nRef = 1;
 			pReturn->_pAlloc = nullptr;
 			pReturn->_pNext = nullptr;
+			xPrintf("allocMemory %llx, id=%d, size=%d\n", pReturn, pReturn->_nID, size);
 		}
 		else {
 			pReturn = _pHeader;
@@ -192,14 +193,14 @@ public:
 			pReturn->_nRef = 1;
 			pReturn->_pAlloc = nullptr;
 			pReturn->_pNext = nullptr;
-			//xPrintf("allocMem: %llx, id=%d, size=%d\n", pReturn, pReturn->_nID, nSize);
+			xPrintf("allocMem: %llx, id=%d, size=%d\n", pReturn, pReturn->_nID, nSize);
 			return ((char*)pReturn + sizeof(MemoryBlock));
 		}
 	}
 	//释放内存
 	void freeMem(void *pMem) {
 		MemoryBlock *pBlock = (MemoryBlock*)(((char*)pMem) - sizeof(MemoryBlock));
-		//xPrintf("freeMem: %llx, id=%d, ref=%d\n", pBlock, pBlock->_nID, pBlock->_nRef);
+		xPrintf("freeMem: %llx, id=%d, ref=%d\n", pBlock, pBlock->_nID, pBlock->_nRef);
 		if (pBlock->_bPool) {
 			pBlock->_pAlloc->freeMemory(pMem);
 		}
@@ -223,8 +224,8 @@ private:
 			_szAlloc[n] = pMemA;
 		}
 	}
-	MemoryAlloctor<64, 1000000> _mem64;
-	MemoryAlloctor<128, 1000000> _mem128;
+	MemoryAlloctor<64, 4000000> _mem64;
+	MemoryAlloctor<128, 2000000> _mem128;
 	//MemoryAlloctor<256, 10> _mem256;
 	//MemoryAlloctor<512, 10> _mem512;
 	//MemoryAlloctor<1024, 10> _mem1024;
