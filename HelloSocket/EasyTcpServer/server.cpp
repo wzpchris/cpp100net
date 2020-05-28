@@ -1,4 +1,4 @@
-#include "Alloctor.h"
+//#include "Alloctor.h"
 #include "EasyTcpServer.hpp"
 
 #include <cstdio>
@@ -27,55 +27,55 @@ public:
 	MyServer() {}
 	~MyServer() {}
 	//客户端加入事件
-	virtual void OnNetJoin(ClientSocket *pClient) {
+	virtual void OnNetJoin(CellClient *pClient) {
 		EasyTcpServer::OnNetJoin(pClient);
 	}
 	//客户端离开事件
-	virtual void OnNetLeave(ClientSocket *pClient) {
+	virtual void OnNetLeave(CellClient *pClient) {
 		EasyTcpServer::OnNetLeave(pClient);
 	}
 	//客户端消息事件
-	virtual void OnNetMsg(CellServer *pCellServer, ClientSocket *pClient, DataHeader *header) {
+	virtual void OnNetMsg(CellServer *pCellServer, CellClient *pClient, netmsg_DataHeader *header) {
 		EasyTcpServer::OnNetMsg(pCellServer, pClient, header);
 		//6.处理请求
 		switch (header->cmd)
 		{
 			case CMD_LOGIN:
 			{
-				Login *login = (Login*)header;
+				netmsg_Login *login = (netmsg_Login*)header;
 				//printf("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login->dataLength, login->cmd, login->UserName, login->PassWord);
 				//忽略判断用户密码是否正确的过程
 				//发送数据 这里的发送有性能瓶颈
 				//接收 消息  -->  处理 发送
 				//生产者  数据缓冲区  消费者
-				/*LoginResult ret;
+				/*netmsg_LoginR ret;
 				pClient->SendData(&ret);*/
-				LoginResult *ret = new LoginResult();	
+				netmsg_LoginR *ret = new netmsg_LoginR();	
 				pCellServer->addSendTask(pClient, ret);
 			}
 			break;
 			case CMD_LOGOUT:
 			{
-				LogOut *logout = (LogOut*)header;
+				netmsg_LogOut *logout = (netmsg_LogOut*)header;
 				//printf("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout->dataLength, logout->cmd, logout->UserName);
 				//忽略判断用户密码是否正确的过程
-				/*LogOutResult ret;
+				/*netmsg_LogOutR ret;
 				pClient->SendData(&ret);*/
-				LogOutResult *ret = new LogOutResult();
+				netmsg_LogOutR *ret = new netmsg_LogOutR();
 				pCellServer->addSendTask(pClient, ret);
 			}
 			break;
 			default:
 			{
 				printf("recv unknow sock=%d, msglen=%d...\n", pClient->sockfd(), header->dataLength);
-				/*DataHeader ret;
+				/*netmsg_DataHeader ret;
 				pClient->SendData(&ret);*/
 			}
 			break;
 		};
 	}
 
-	virtual void OnNetRecv(ClientSocket *pClient) {
+	virtual void OnNetRecv(CellClient *pClient) {
 		EasyTcpServer::OnNetRecv(pClient);
 	}
 };

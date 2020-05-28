@@ -11,9 +11,9 @@ enum CMD {
 };
 
 //消息头
-struct DataHeader {
-	DataHeader() {
-		dataLength = sizeof(DataHeader);
+struct netmsg_DataHeader {
+	netmsg_DataHeader() {
+		dataLength = sizeof(netmsg_DataHeader);
 		cmd = CMD_ERROR;
 	}
 	short dataLength;
@@ -21,9 +21,9 @@ struct DataHeader {
 };
 
 //DataPackage
-struct Login : public DataHeader {
-	Login() {
-		dataLength = sizeof(Login);
+struct netmsg_Login : public netmsg_DataHeader {
+	netmsg_Login() {
+		dataLength = sizeof(netmsg_Login);
 		cmd = CMD_LOGIN;
 	}
 	char UserName[32];
@@ -31,9 +31,9 @@ struct Login : public DataHeader {
 	char data[32];
 };
 
-struct LoginResult :public DataHeader {
-	LoginResult() {
-		dataLength = sizeof(LoginResult);
+struct netmsg_LoginR :public netmsg_DataHeader {
+	netmsg_LoginR() {
+		dataLength = sizeof(netmsg_LoginR);
 		cmd = CMD_LOGIN_RESULT;
 		result = 1;
 	}
@@ -41,26 +41,26 @@ struct LoginResult :public DataHeader {
 	char data[92];
 };
 
-struct LogOut :public DataHeader {
-	LogOut() {
-		dataLength = sizeof(LogOut);
+struct netmsg_LogOut :public netmsg_DataHeader {
+	netmsg_LogOut() {
+		dataLength = sizeof(netmsg_LogOut);
 		cmd = CMD_LOGOUT;
 	}
 	char UserName[32];
 };
 
-struct LogOutResult :public DataHeader {
-	LogOutResult() {
-		dataLength = sizeof(LogOutResult);
+struct netmsg_LogOutR :public netmsg_DataHeader {
+	netmsg_LogOutR() {
+		dataLength = sizeof(netmsg_LogOutR);
 		cmd = CMD_LOGOUT_RESULT;
 		result = 1;
 	}
 	int result;
 };
 
-struct NewUserJoin :public DataHeader {
-	NewUserJoin() {
-		dataLength = sizeof(NewUserJoin);
+struct netmsg_NewUserJoin :public netmsg_DataHeader {
+	netmsg_NewUserJoin() {
+		dataLength = sizeof(netmsg_NewUserJoin);
 		cmd = CMD_NEW_USER_JOIN;
 		sock = 0;
 	}

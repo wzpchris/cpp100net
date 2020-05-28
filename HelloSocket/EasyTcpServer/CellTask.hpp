@@ -85,5 +85,4 @@ protected:
 		}
 	}
 };
-
 #endif 
