@@ -1,3 +1,4 @@
+#include "Alloctor.h"
 #include "EasyTcpServer.hpp"
 
 #include <cstdio>
