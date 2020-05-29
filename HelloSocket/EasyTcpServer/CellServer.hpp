@@ -4,6 +4,7 @@
 #include "Cell.hpp"
 #include "INetEvent.hpp"
 #include "CellClient.hpp"
+#include "CellSemaphore.hpp"
 
 #include <vector>
 #include <map>
@@ -11,49 +12,49 @@
 //网络消息接收服务类
 class CellServer {
 public:
-	CellServer(SOCKET sock = INVALID_SOCKET) {
-		_sock = sock;
+	CellServer(int id) {
+		_id = id;
+		_isRun = false;
+		_clients_change = true;
 		_pNetEvent = nullptr;
+		_taskServer.serverId = id;
 	}
 	~CellServer() {
+		printf("CellServer exit start id[%d]\n", _id);
 		Close();
+		printf("CellServer exit end id[%d]\n", _id);
 	}
 
 	void setEventObj(INetEvent *pNetEvent) {
 		_pNetEvent = pNetEvent;
 	}
 
-	//是否工作中
-	bool IsRun() {
-		return _sock != INVALID_SOCKET;
-	}
-
 	//关闭socket
 	void Close() {
-		_taskServer.Close();
-		if (_sock != INVALID_SOCKET) {
-			for (auto iter : _clients) {
-				delete iter.second;
-			}
-
-			for (auto iter : _clientsBuff) {
-				delete iter;
-			}
-			_clientsBuff.clear();
-			_clients.clear();
+		printf("CellServer[%d].Close start\n", _id);
+		if (_isRun) {
+			_taskServer.Close();
+			_isRun = false;
+			_sem.wait();
 		}
+		printf("CellServer[%d].Close end\n", _id);
+		
 	}
 
 	//处理网络消息
 	void OnRun() {
-		_clients_change = true;
-		while (IsRun()) {
+		while (_isRun) {
 			if (!_clientsBuff.empty())
 			{
 				//从缓冲队列里取出客户数据
 				std::lock_guard<std::mutex> lock(_mutex);
 				for (auto pClient : _clientsBuff) {
 					_clients[pClient->sockfd()] = pClient;
+					
+					pClient->serverId = _id;
+					if (!_pNetEvent) {
+						_pNetEvent->OnNetJoin(pClient);
+					}
 				}
 				_clientsBuff.clear();
 				_clients_change = true;
@@ -103,6 +104,10 @@ public:
 			ReadData(fdRead);
 			CheckTime();
 		}
+
+		printf("CellServer.OnRun id[%d] exit\n", _id);
+		Clearclients();
+		_sem.wakeup();
 	}
 
 	void CheckTime() {
@@ -221,8 +226,12 @@ public:
 	}
 
 	void Start() {
-		_thread = std::thread(std::mem_fn(&CellServer::OnRun), this);
-		_taskServer.Start();
+		if (!_isRun) {
+			_isRun = true;
+			std::thread t(std::mem_fn(&CellServer::OnRun), this);
+			t.detach();
+			_taskServer.Start();
+		}
 	}
 
 	size_t getClientCount() {
@@ -235,15 +244,25 @@ public:
 			delete header;
 		});
 	}*/
+private:
+	void Clearclients() {
+		for (auto iter : _clients) {
+			delete iter.second;
+		}
+
+		for (auto iter : _clientsBuff) {
+			delete iter;
+		}
+		_clientsBuff.clear();
+		_clients.clear();
+	}
 private: //字节大的往前，小的靠后，主要是为了字节对齐
-	SOCKET _sock;
 	//正式客户队列
 	std::map<SOCKET, CellClient*> _clients;
 	//客户缓冲区
 	std::vector<CellClient*> _clientsBuff;
 	//缓冲队列的锁
 	std::mutex _mutex;
-	std::thread _thread;
 	//网络事件对象
 	INetEvent *_pNetEvent;
 	//
@@ -254,10 +273,15 @@ private: //字节大的往前，小的靠后，主要是为了字节对齐
 	
 	SOCKET _maxSock;
 
+	CellSemaphore _sem;
+
 	//旧的时间
 	time_t _old_time = CellTime::getNowTimeInMilliSec();
+	int _id = -1;
 	//客户列表是否有变化
 	bool _clients_change;
+	//是否工作中
+	bool _isRun;
 };
 
 #endif //

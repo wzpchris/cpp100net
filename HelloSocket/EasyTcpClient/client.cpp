@@ -22,7 +22,7 @@ void cmdThread() {
 }
 
 //客户端数量
-const int nCount = 1000;
+const int nCount = 20;
 //发送线程数量
 const int tCount = 4;
 //这里不能是EasyTcpClient的数组，因为栈的大小大约只有1M,这里会爆栈

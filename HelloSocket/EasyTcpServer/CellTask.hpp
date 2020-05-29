@@ -11,10 +11,15 @@
 #include <vector>
 #include <functional>
 
+#include "CellSemaphore.hpp"
+
 using CellTask = std::function<void()>;
 //执行任务服务类型
 class CellTaskServer
 {
+public:
+	//所属serverid
+	int serverId = -1;
 private:
 	//任务数据
 	std::list<CellTask> _tasks;
@@ -24,6 +29,7 @@ private:
 	std::mutex _mutex;
 	//
 	bool _isRun = false;
+	CellSemaphore _sem;
 public:
 	CellTaskServer() {
 	}
@@ -45,7 +51,12 @@ public:
 	}
 
 	void Close() {
-		_isRun = false;
+		printf("CellTaskServer.Close start serverid[%d]\n", serverId);
+		if (_isRun) {
+			_isRun = false;
+			_sem.wait();
+		}
+		printf("CellTaskServer.Close end serverid[%d]\n", serverId);
 	}
 
 protected:
@@ -75,6 +86,9 @@ protected:
 			//清空任务
 			_tasks.clear();
 		}
+
+		printf("CellTaskServer.OnRun serverid[%d]\n", serverId);
+		_sem.wakeup();
 	}
 };
 #endif 

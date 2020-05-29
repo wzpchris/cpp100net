@@ -137,6 +137,7 @@
     <ClInclude Include="Alloctor.h" />
     <ClInclude Include="Cell.hpp" />
     <ClInclude Include="CellClient.hpp" />
+    <ClInclude Include="CellSemaphore.hpp" />
     <ClInclude Include="CellServer.hpp" />
     <ClInclude Include="CellTask.hpp" />
     <ClInclude Include="CellTimestamp.hpp" />

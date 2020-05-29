@@ -11,7 +11,6 @@ void cmdThread(EasyTcpServer *server) {
 		scanf("%s", cmdBuf);
 		if (0 == strcmp(cmdBuf, "exit")) {
 			g_bRun = false;
-			server->Close();
 			printf("client exit cmdThread...\n");
 			break;
 		}
@@ -106,6 +105,13 @@ int main() {
 	server.Close();
 
 	printf("exit.\n");
-	getchar();
+	/*CellTaskServer task;
+	task.Start();
+	Sleep(100);
+	task.Close();*/
+
+	while (true) {
+		Sleep(1);
+	}
 	return 0;
 }
