@@ -9,31 +9,17 @@
 #include <mutex>
 #include <list>
 #include <vector>
+#include <functional>
 
-//任务基类
-class CellTask
-{
-public:
-	CellTask() {
-
-	}
-	virtual ~CellTask() {
-
-	}
-	//执行任务
-	virtual void doTask() {
-
-	}
-};
-
+using CellTask = std::function<void()>;
 //执行任务服务类型
 class CellTaskServer
 {
 private:
 	//任务数据
-	std::list<CellTask*> _tasks;
+	std::list<CellTask> _tasks;
 	//任务数据缓冲区
-	std::list<CellTask*> _tasksBuf;
+	std::list<CellTask> _tasksBuf;
 	//改变数据缓冲区时需要加锁
 	std::mutex _mutex;
 public:
@@ -43,7 +29,7 @@ public:
 	}
 
 	//添加任务
-	void addTask(CellTask *task) {
+	void addTask(CellTask task) {
 		std::lock_guard<std::mutex> lock(_mutex);
 		_tasksBuf.push_back(task);
 
@@ -77,8 +63,7 @@ protected:
 
 			//处理任务
 			for (auto pTask : _tasks) {
-				pTask->doTask();
-				delete pTask;
+				pTask();
 			}
 			//清空任务
 			_tasks.clear();
