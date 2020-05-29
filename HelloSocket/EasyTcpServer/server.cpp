@@ -48,10 +48,10 @@ public:
 				//发送数据 这里的发送有性能瓶颈
 				//接收 消息  -->  处理 发送
 				//生产者  数据缓冲区  消费者
-				/*netmsg_LoginR ret;
-				pClient->SendData(&ret);*/
-				netmsg_LoginR *ret = new netmsg_LoginR();	
-				pCellServer->addSendTask(pClient, ret);
+				netmsg_LoginR ret;
+				pClient->SendData(&ret);
+				/*netmsg_LoginR *ret = new netmsg_LoginR();	
+				pCellServer->addSendTask(pClient, ret);*/
 			}
 			break;
 			case CMD_LOGOUT:
@@ -59,10 +59,17 @@ public:
 				netmsg_LogOut *logout = (netmsg_LogOut*)header;
 				//printf("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout->dataLength, logout->cmd, logout->UserName);
 				//忽略判断用户密码是否正确的过程
-				/*netmsg_LogOutR ret;
-				pClient->SendData(&ret);*/
-				netmsg_LogOutR *ret = new netmsg_LogOutR();
-				pCellServer->addSendTask(pClient, ret);
+				netmsg_LogOutR ret;
+				pClient->SendData(&ret);
+				/*netmsg_LogOutR *ret = new netmsg_LogOutR();
+				pCellServer->addSendTask(pClient, ret);*/
+			}
+			break;
+			case CMD_C2S_HEART:
+			{
+				pClient->resetDtHeart();
+				netmsg_s2c_Heart ret;
+				pClient->SendData(&ret);
 			}
 			break;
 			default:
