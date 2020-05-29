@@ -122,6 +122,7 @@ public:
 		auto dt = nowTime - _old_time;
 		_old_time = nowTime;
 		for (auto iter = _clients.begin(); iter != _clients.end();) {
+			//心跳检测
 			if (iter->second->checkHeart(dt)) {
 				if (_pNetEvent) {
 					_pNetEvent->OnNetLeave(iter->second);
@@ -130,10 +131,12 @@ public:
 				_clients_change = true;
 				delete iter->second;
 				iter = _clients.erase(iter);
+				continue;
 			}
-			else {
-				++iter;
-			}
+
+			//定时发送检测
+			iter->second->checkSend(dt);
+			++iter;
 		}
 	}
 

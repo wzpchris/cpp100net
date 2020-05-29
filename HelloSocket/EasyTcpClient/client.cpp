@@ -22,7 +22,7 @@ void cmdThread() {
 }
 
 //客户端数量
-const int nCount = 8;
+const int nCount = 100;
 //发送线程数量
 const int tCount = 4;
 //这里不能是EasyTcpClient的数组，因为栈的大小大约只有1M,这里会爆栈
@@ -84,8 +84,8 @@ void sendThread(int id) {  //4个线程 ID 1-4
 				sendCount++;
 			}
 		}
-		/*std::chrono::milliseconds t(10);
-		std::this_thread::sleep_for(t);*/
+		std::chrono::milliseconds t(100);
+		std::this_thread::sleep_for(t);
 	}
 	
 
