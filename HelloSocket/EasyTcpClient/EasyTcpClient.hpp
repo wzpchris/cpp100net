@@ -165,11 +165,11 @@ public:
 		//memcpy(_szMsgBuf + _lastPos, _szRecv, nLen);
 		//消息缓冲区的数据尾部位置后移
 		_lastPos += nLen;
-		//判断消息缓冲区的数据长度大于消息头DataHeader长度
+		//判断消息缓冲区的数据长度大于消息头netmsg_DataHeader长度
 		//这里的while是为了处理粘包
-		while(_lastPos >= sizeof(DataHeader)) {
+		while(_lastPos >= sizeof(netmsg_DataHeader)) {
 			//这时就可以知道当前消息体的长度
-			DataHeader *header = (DataHeader*)_szMsgBuf;
+			netmsg_DataHeader *header = (netmsg_DataHeader*)_szMsgBuf;
 			//判断消息缓冲区的数据长度大于消息长度 
 			//这里是为了处理少包问题
 			if (_lastPos >= header->dataLength) {
@@ -191,27 +191,27 @@ public:
 	}
 
 	//响应网络消息
-	virtual void OnNetMsg(DataHeader *header) {
+	virtual void OnNetMsg(netmsg_DataHeader *header) {
 		//6.处理请求
 		switch (header->cmd)
 		{
 			case CMD_LOGIN_RESULT:
 			{
-				LoginResult *loginret = (LoginResult*)header;
+				netmsg_LoginR *loginret = (netmsg_LoginR*)header;
 				/*printf("recv server CMD_LOGIN_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
 					loginret->dataLength, loginret->cmd, loginret->result);*/
 			}
 			break;
 			case CMD_LOGOUT_RESULT:
 			{
-				LogOutResult *logoutret = (LogOutResult*)header;
+				netmsg_LogOutR *logoutret = (netmsg_LogOutR*)header;
 				/*printf("recv server CMD_LOGOUT_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
 					logoutret->dataLength, logoutret->cmd, logoutret->result);*/
 			}
 			break;
 			case CMD_NEW_USER_JOIN:
 			{
-				NewUserJoin *newJoin = (NewUserJoin*)header;
+				netmsg_NewUserJoin *newJoin = (netmsg_NewUserJoin*)header;
 				/*printf("recv server CMD_NEW_USER_JOIN msg: [len=%d, cmd=%d, sock=%d]\n",
 					newJoin->dataLength, newJoin->cmd, newJoin->sock);*/
 			}
@@ -228,7 +228,7 @@ public:
 	}
 
 	//发送数据
-	int SendData(DataHeader *header, int nLen) {
+	int SendData(netmsg_DataHeader *header, int nLen) {
 		int ret = SOCKET_ERROR;
 		if (IsRun() && header) {
 			ret = send(_sock, (const char *)header, nLen, 0);

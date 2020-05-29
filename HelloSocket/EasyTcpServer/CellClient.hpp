@@ -4,7 +4,7 @@
 #include "Cell.hpp"
 
 //客户端心跳检测死亡计时时间
-#define CLIENT_HEART_DEAD_TIME  5000
+#define CLIENT_HEART_DEAD_TIME  60000
 
 // 客户端数据类型
 class CellClient {
@@ -38,7 +38,7 @@ public:
 	void setLastPos(int pos) {
 		_lastPos = pos;
 	}
-	//发送指定Socket数据
+	//发送指定Socket数据(这里需要定时定量发送数据)
 	int SendData(netmsg_DataHeader *header) {
 		int ret = SOCKET_ERROR;
 		//要发送的数据长度

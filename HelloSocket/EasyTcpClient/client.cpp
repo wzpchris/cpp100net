@@ -71,7 +71,7 @@ void sendThread(int id) {  //4个线程 ID 1-4
 	t1.detach();
 	//
 
-	Login login[10];
+	netmsg_Login login[10];
 	for (int n = 0; n < 10; n++) {
 		strcpy(login[n].UserName, "tom");
 		strcpy(login[n].PassWord, "tom");

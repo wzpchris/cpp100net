@@ -42,6 +42,7 @@ public:
 		{
 			case CMD_LOGIN:
 			{
+				pClient->resetDtHeart();
 				netmsg_Login *login = (netmsg_Login*)header;
 				//printf("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login->dataLength, login->cmd, login->UserName, login->PassWord);
 				//忽略判断用户密码是否正确的过程
