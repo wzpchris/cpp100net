@@ -15,11 +15,12 @@
 
 class EasyTcpServer:public INetEvent {
 private:
-	SOCKET _sock;
+	CellThread _thread;
 	//消息处理对象，内部会创建线程
 	std::vector<CellServer*> _cellServers;
 	//每秒消息计时
 	CellTimestamp _tTime;
+	SOCKET _sock;
 protected:
 	//recv计数
 	std::atomic_int _recvCount;
@@ -159,12 +160,19 @@ public:
 			//启动消息处理线程
 			ser->Start();
 		}
+
+		_thread.Start(
+			nullptr, 
+			[this](CellThread *pThread) {
+				OnRun(pThread);
+			});
 	}
 
 	//关闭socket
 	void Close() {
 		if (_sock != INVALID_SOCKET) {
 			printf("EasyTcpServer.Close start\n");
+			_thread.Close();
 			for (auto cs : _cellServers) {
 				delete cs;
 			}
@@ -180,40 +188,7 @@ public:
 			printf("EasyTcpServer.Close end\n");
 		}
 	}
-	//处理网络消息
-	bool OnRun() {
-		if (IsRun()) {
-			time4msg();
-			//伯克利 BSD	socket
-			fd_set fdRead;
-			FD_ZERO(&fdRead); 
-			FD_SET(_sock, &fdRead);
-			//nfds是一个整数值，是指fd_set集合中所有描述符(socket)的范围，而不是数量
-			//即是所有文件描述符最大值+1，在windows中这个参数可以写0
-			//timeval t = { 0, 0 }; //这是是非阻塞，将导致单核CPU达到100%
-			timeval t = { 0, 10 };
-			int ret = select(_sock + 1, &fdRead, nullptr, nullptr, &t);
-			if (ret < 0) {
-				printf("Accept Select finish.\n");
-				Close();
-				return false;
-			}
-
-			if (FD_ISSET(_sock, &fdRead)) {
-				FD_CLR(_sock, &fdRead);
-				Accpet();
-				return true;
-			}
-
-			return true;
-		}
-		return false;
-	}
-	//是否工作中
-	bool IsRun() {
-		return _sock != INVALID_SOCKET;
-	}
-
+	
 	//计算并输出每秒收到的网络消息
 	void time4msg() {
 		auto t1 = _tTime.getElapsedSecond();
@@ -242,6 +217,33 @@ public:
 
 	virtual void OnNetRecv(CellClient *pClient) {
 		_recvCount++;
+	}
+
+private:
+	//处理网络消息
+	void OnRun(CellThread *pThread) {
+		while (pThread->isRun()) {
+			time4msg();
+			//伯克利 BSD	socket
+			fd_set fdRead;
+			FD_ZERO(&fdRead);
+			FD_SET(_sock, &fdRead);
+			//nfds是一个整数值，是指fd_set集合中所有描述符(socket)的范围，而不是数量
+			//即是所有文件描述符最大值+1，在windows中这个参数可以写0
+			//timeval t = { 0, 0 }; //这是是非阻塞，将导致单核CPU达到100%
+			timeval t = { 0, 1 };
+			int ret = select(_sock + 1, &fdRead, nullptr, nullptr, &t);
+			if (ret < 0) {
+				printf("EasyTcpServer.OnRun select error exit.\n");
+				pThread->Exit();
+				break;
+			}
+
+			if (FD_ISSET(_sock, &fdRead)) {
+				FD_CLR(_sock, &fdRead);
+				Accpet();
+			}
+		}
 	}
 };
 

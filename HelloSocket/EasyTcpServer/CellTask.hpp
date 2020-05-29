@@ -11,7 +11,7 @@
 #include <vector>
 #include <functional>
 
-#include "CellSemaphore.hpp"
+#include "CellThread.hpp"
 
 using CellTask = std::function<void()>;
 //执行任务服务类型
@@ -28,8 +28,7 @@ private:
 	//改变数据缓冲区时需要加锁
 	std::mutex _mutex;
 	//
-	bool _isRun = false;
-	CellSemaphore _sem;
+	CellThread _thread;
 public:
 	CellTaskServer() {
 	}
@@ -45,24 +44,21 @@ public:
 
 	//启动工作线程
 	void Start() {
-		_isRun = true;
-		std::thread t(std::mem_fn(&CellTaskServer::OnRun), this);
-		t.detach();
+		_thread.Start(nullptr, [this](CellThread* pThread) {
+			OnRun(pThread);
+		});
 	}
 
 	void Close() {
 		printf("CellTaskServer.Close start serverid[%d]\n", serverId);
-		if (_isRun) {
-			_isRun = false;
-			_sem.wait();
-		}
+		_thread.Close();
 		printf("CellTaskServer.Close end serverid[%d]\n", serverId);
 	}
 
 protected:
 	//工作函数
-	void OnRun() {
-		while (_isRun) {
+	void OnRun(CellThread* pThread) {
+		while (pThread->isRun()) {
 			//从缓冲区取出数据
 			if (!_tasksBuf.empty()) {
 				std::lock_guard<std::mutex> lock(_mutex);
@@ -88,7 +84,6 @@ protected:
 		}
 
 		printf("CellTaskServer.OnRun serverid[%d]\n", serverId);
-		_sem.wakeup();
 	}
 };
 #endif 

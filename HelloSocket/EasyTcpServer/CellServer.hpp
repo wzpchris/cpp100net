@@ -14,7 +14,6 @@ class CellServer {
 public:
 	CellServer(int id) {
 		_id = id;
-		_isRun = false;
 		_clients_change = true;
 		_pNetEvent = nullptr;
 		_taskServer.serverId = id;
@@ -32,18 +31,15 @@ public:
 	//关闭socket
 	void Close() {
 		printf("CellServer[%d].Close start\n", _id);
-		if (_isRun) {
-			_taskServer.Close();
-			_isRun = false;
-			_sem.wait();
-		}
+		_taskServer.Close();
+		_thread.Close();
 		printf("CellServer[%d].Close end\n", _id);
 		
 	}
 
 	//处理网络消息
-	void OnRun() {
-		while (_isRun) {
+	void OnRun(CellThread *pThread) {
+		while (pThread->isRun()) {
 			if (!_clientsBuff.empty())
 			{
 				//从缓冲队列里取出客户数据
@@ -94,9 +90,9 @@ public:
 			//timeval t = { 1, 0 };
 			int ret = select(_maxSock + 1, &fdRead, nullptr, nullptr, &t);
 			if (ret < 0) {
-				printf("select error exit\n");
-				Close();
-				return;
+				printf("CellServer.OnRun select error exit\n");
+				pThread->Exit();
+				break;
 			}
 			/*else if (ret == 0) {
 				continue;
@@ -106,8 +102,6 @@ public:
 		}
 
 		printf("CellServer.OnRun id[%d] exit\n", _id);
-		Clearclients();
-		_sem.wakeup();
 	}
 
 	void CheckTime() {
@@ -226,12 +220,16 @@ public:
 	}
 
 	void Start() {
-		if (!_isRun) {
-			_isRun = true;
-			std::thread t(std::mem_fn(&CellServer::OnRun), this);
-			t.detach();
-			_taskServer.Start();
-		}
+		_taskServer.Start();
+		_thread.Start(
+			nullptr, 
+			[this](CellThread *pThread) {
+				OnRun(pThread);
+			},
+			[this](CellThread* pThread) {
+				Clearclients();
+			}
+		);
 	}
 
 	size_t getClientCount() {
@@ -273,15 +271,14 @@ private: //字节大的往前，小的靠后，主要是为了字节对齐
 	
 	SOCKET _maxSock;
 
-	CellSemaphore _sem;
-
 	//旧的时间
 	time_t _old_time = CellTime::getNowTimeInMilliSec();
+	//
+	CellThread _thread;
+	
 	int _id = -1;
 	//客户列表是否有变化
 	bool _clients_change;
-	//是否工作中
-	bool _isRun;
 };
 
 #endif //
