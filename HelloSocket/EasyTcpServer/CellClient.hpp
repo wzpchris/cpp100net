@@ -21,11 +21,14 @@ public:
 		resetDTSend();
 	}
 	~CellClient() {
+		if (SOCKET_ERROR != _sockfd) {
 #ifdef _WIN32
-		closesocket(_sockfd);
+			closesocket(_sockfd);
 #else
-		close(_sockfd);
+			close(_sockfd);
 #endif
+			_sockfd = SOCKET_ERROR;
+		}
 	}
 
 	SOCKET sockfd() {

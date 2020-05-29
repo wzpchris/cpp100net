@@ -30,30 +30,20 @@ public:
 
 	//关闭socket
 	void Close() {
+		_taskServer.Close();
 		if (_sock != INVALID_SOCKET) {
-#ifdef _WIN32
 			for (auto iter : _clients) {
-				closesocket(iter.first);
 				delete iter.second;
 			}
-			closesocket(_sock);
-#else 
-			for (auto iter : _clients) {
-				close(iter.first);
-				delete iter.second;
+
+			for (auto iter : _clientsBuff) {
+				delete iter;
 			}
-			close(_sock);
-#endif
-			_sock = INVALID_SOCKET;
+			_clientsBuff.clear();
 			_clients.clear();
 		}
 	}
 
-	//备份客户socket fd_set
-	fd_set _fdRead_bak;
-	//客户列表是否有变化
-	bool _clients_change;
-	SOCKET _maxSock;
 	//处理网络消息
 	void OnRun() {
 		_clients_change = true;
@@ -115,7 +105,6 @@ public:
 		}
 	}
 
-	time_t _old_time = CellTime::getNowTimeInMilliSec();
 	void CheckTime() {
 		//当前时间戳
 		auto nowTime = CellTime::getNowTimeInMilliSec();
@@ -246,7 +235,7 @@ public:
 			delete header;
 		});
 	}*/
-private:
+private: //字节大的往前，小的靠后，主要是为了字节对齐
 	SOCKET _sock;
 	//正式客户队列
 	std::map<SOCKET, CellClient*> _clients;
@@ -259,6 +248,16 @@ private:
 	INetEvent *_pNetEvent;
 	//
 	CellTaskServer _taskServer;
+
+	//备份客户socket fd_set
+	fd_set _fdRead_bak;
+	
+	SOCKET _maxSock;
+
+	//旧的时间
+	time_t _old_time = CellTime::getNowTimeInMilliSec();
+	//客户列表是否有变化
+	bool _clients_change;
 };
 
 #endif //

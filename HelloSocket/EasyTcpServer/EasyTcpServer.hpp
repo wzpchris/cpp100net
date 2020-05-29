@@ -165,8 +165,12 @@ public:
 	//关闭socket
 	void Close() {
 		if (_sock != INVALID_SOCKET) {
+			for (auto cs : _cellServers) {
+				delete cs;
+			}
+			_cellServers.clear();
 #ifdef _WIN32
-			//8.关闭套接字closesocket
+			//关闭套接字closesocket
 			closesocket(_sock);
 			WSACleanup();
 #else 
