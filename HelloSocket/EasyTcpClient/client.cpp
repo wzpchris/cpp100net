@@ -31,8 +31,12 @@ std::atomic_int sendCount = 0;
 std::atomic_int readyCount = 0;
 
 void recvThread(int begin, int end) {
+	CellTimestamp t;
 	while (g_bRun) {
 		for (int n = begin; n < end; ++n) {
+			if (t.getElapsedSecond() > 3.0 && n == begin) {
+				continue;
+			}
 			client[n]->OnRun();
 		}
 	}
@@ -84,11 +88,10 @@ void sendThread(int id) {  //4个线程 ID 1-4
 				sendCount++;
 			}
 		}
-		/*std::chrono::milliseconds t(100);
-		std::this_thread::sleep_for(t);*/
+		std::chrono::milliseconds t(100);
+		std::this_thread::sleep_for(t);
 	}
 	
-
 	for (int n = begin; n < end; ++n) {
 		client[n]->Close();
 		delete client[n];

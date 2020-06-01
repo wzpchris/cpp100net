@@ -31,7 +31,7 @@
 //缓冲区最小单元的大小
 #ifndef RECV_BUFF_SIZE
 #define RECV_BUFF_SIZE (10240)
-#define SEND_BUFF_SIZE RECV_BUFF_SIZE
+#define SEND_BUFF_SIZE 1024000
 #endif
 
 #endif // _CELL_HPP_

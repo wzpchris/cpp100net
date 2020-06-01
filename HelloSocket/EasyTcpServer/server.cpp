@@ -38,7 +38,11 @@ public:
 				//接收 消息  -->  处理 发送
 				//生产者  数据缓冲区  消费者
 				netmsg_LoginR ret;
-				pClient->SendData(&ret);
+				if (SOCKET_ERROR == pClient->SendData(&ret)) {
+					//发送缓冲区满了，消息没发出去
+					//这里可以将没有发送出去的消息放入数据库或者文件中，之后再发送
+					printf("send buff full sock[%d]\n", pClient->sockfd());
+				}
 				/*netmsg_LoginR *ret = new netmsg_LoginR();	
 				pCellServer->addSendTask(pClient, ret);*/
 			}
@@ -80,7 +84,7 @@ int main() {
 	MyServer server;
 	server.InitSocket();
 	server.Bind(nullptr, 4567);
-	server.Listen(5);
+	server.Listen(64);
 	server.Start(4);
 
 	////启动UI线程
