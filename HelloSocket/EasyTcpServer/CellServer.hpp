@@ -209,39 +209,19 @@ public:
 	//接收数据 处理粘包 拆分包
 	int RecvData(CellClient *pClient) {
 		//接收数据
-		char *szRecv = pClient->msgBuf() + pClient->getLastPos();
-		int nLen = (int)recv(pClient->sockfd(), szRecv, RECV_BUFF_SIZE - pClient->getLastPos(), 0);
-		_pNetEvent->OnNetRecv(pClient);
+		int nLen = pClient->RecvData();
 		if (nLen <= 0) {
-			//printf("client socket=%d exit\n", pClient->sockfd());
 			return -1;
 		}
+		//触发 接收到网络数据事件
+		_pNetEvent->OnNetRecv(pClient);
 		
-		//将接收到的数据拷贝到消息缓冲区
-		//memcpy(pClient->msgBuf() + pClient->getLastPos(), _szRecv, nLen);
-		//消息缓冲区的数据尾部位置后移
-		pClient->setLastPos(pClient->getLastPos() + nLen);
-
-		//判断消息缓冲区的数据长度大于消息头netmsg_DataHeader长度
-		//这里的while是为了处理粘包
-		while (pClient->getLastPos() >= sizeof(netmsg_DataHeader)) {
-			//这时就可以知道当前消息体的长度
-			netmsg_DataHeader *header = (netmsg_DataHeader*)pClient->msgBuf();
-			//判断消息缓冲区的数据长度大于消息长度 
-			//这里是为了处理少包问题
-			if (pClient->getLastPos() >= header->dataLength) {
-				//消息缓冲区剩余未处理数据的长度
-				int nSize = pClient->getLastPos() - header->dataLength;
-				//处理网路消息
-				OnNetMsg(pClient, header);
-				//消息缓冲区剩余未处理数据前移
-				memcpy(pClient->msgBuf(), pClient->msgBuf() + header->dataLength, nSize);
-				pClient->setLastPos(nSize);
-			}
-			else {
-				//剩余数据不够一条完整消息
-				break;
-			}
+		//循环 判断是否有消息需要处理
+		while (pClient->hasMsg()) {
+			//处理网络消息
+			OnNetMsg(pClient, pClient->front_msg());
+			//移除 消息队列(缓冲区) 最前的一条数据
+			pClient->pop_front_msg();
 		}
 		return 0;
 	}
