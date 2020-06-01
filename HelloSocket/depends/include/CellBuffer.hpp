@@ -111,6 +111,9 @@ public:
 
 		return false;
 	}
+	bool needWrite() {
+		return _nLast > 0;
+	}
 private:
 	//缓冲区
 	char* _pBuff = nullptr;

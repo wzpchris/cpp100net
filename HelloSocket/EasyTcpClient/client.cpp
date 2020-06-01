@@ -5,6 +5,45 @@
 #include <thread>    //c++标准线程库
 #include <atomic>
 
+class MyClient :public EasyTcpClient {
+public:
+	virtual void OnNetMsg(netmsg_DataHeader *header) {
+		//6.处理请求
+		switch (header->cmd)
+		{
+		case CMD_LOGIN_RESULT:
+		{
+			netmsg_LoginR *loginret = (netmsg_LoginR*)header;
+			/*CellLog::Info("recv server CMD_LOGIN_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
+				loginret->dataLength, loginret->cmd, loginret->result);*/
+		}
+		break;
+		case CMD_LOGOUT_RESULT:
+		{
+			netmsg_LogOutR *logoutret = (netmsg_LogOutR*)header;
+			/*CellLog::Info("recv server CMD_LOGOUT_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
+				logoutret->dataLength, logoutret->cmd, logoutret->result);*/
+		}
+		break;
+		case CMD_NEW_USER_JOIN:
+		{
+			netmsg_NewUserJoin *newJoin = (netmsg_NewUserJoin*)header;
+			/*CellLog::Info("recv server CMD_NEW_USER_JOIN msg: [len=%d, cmd=%d, sock=%d]\n",
+				newJoin->dataLength, newJoin->cmd, newJoin->sock);*/
+		}
+		break;
+		case CMD_ERROR:
+		{
+			CellLog::Info("recv error msg len=%d...\n", header->dataLength);
+		}
+		break;
+		default: {
+			CellLog::Info("recv unkown msglen=%d...\n", header->dataLength);
+		}
+		};
+	}
+};
+
 bool g_bRun = true;
 void cmdThread() {
 	while (true) {
@@ -12,11 +51,11 @@ void cmdThread() {
 		scanf("%s", cmdBuf);
 		if (0 == strcmp(cmdBuf, "exit")) {
 			g_bRun = false;
-			printf("client exit cmdThread...\n");
+			CellLog::Info("client exit cmdThread...\n");
 			break;
 		}
 		else {
-			printf("no support cmd.\n");
+			CellLog::Info("no support cmd.\n");
 		}
 	}
 }
@@ -43,7 +82,7 @@ void recvThread(int begin, int end) {
 }
 
 void sendThread(int id) {  //4个线程 ID 1-4
-	printf("thread<%d>, start\n", id);
+	CellLog::Info("thread<%d>, start\n", id);
 	int c = nCount / tCount;
 	int begin = (id - 1) * c;
 	int end = id * c;
@@ -51,7 +90,7 @@ void sendThread(int id) {  //4个线程 ID 1-4
 		if (!g_bRun) {
 			return;
 		}
-		client[n] = new EasyTcpClient();
+		client[n] = new MyClient();
 	}
 
 	for (int n = begin; n < end; ++n) {
@@ -62,7 +101,7 @@ void sendThread(int id) {  //4个线程 ID 1-4
 		client[n]->Connect("127.0.0.1", 4567);
 	}
 
-	printf("thread<%d>, Connect<begin=%d, end=%d>\n", id, begin, end);
+	CellLog::Info("thread<%d>, Connect<begin=%d, end=%d>\n", id, begin, end);
 	
 	readyCount++;
 	while (readyCount < tCount) { //等待其他线程准备好发送数据
@@ -84,7 +123,7 @@ void sendThread(int id) {  //4个线程 ID 1-4
 	const int nLen = sizeof(login);
 	while (g_bRun) {
 		for (int n = begin; n < end; ++n) {
-			if (SOCKET_ERROR != client[n]->SendData(login, nLen)) {
+			if (SOCKET_ERROR != client[n]->SendData(login)) {
 				sendCount++;
 			}
 		}
@@ -96,10 +135,11 @@ void sendThread(int id) {  //4个线程 ID 1-4
 		client[n]->Close();
 		delete client[n];
 	}
-	printf("thread<%d>, exit\n", id);
+	CellLog::Info("thread<%d>, exit\n", id);
 }
 
 int main() {
+	CellLog::Instance().setLogPath("clientLog.log", "w");
 	//启动UI线程
 	std::thread t1(cmdThread);
 	//与主线程分离
@@ -115,13 +155,13 @@ int main() {
 	while (g_bRun) {
 		auto t = tTime.getElapsedSecond();
 		if (t >= 1.0) {
-			printf("thread<%d>,clients<%d>,time<%lf>,send<%d>\n", tCount, nCount, t, (int)(sendCount / t));
+			CellLog::Info("thread<%d>,clients<%d>,time<%lf>,send<%d>\n", tCount, nCount, t, (int)(sendCount / t));
 			sendCount = 0;
 			tTime.update();
 		}
 		Sleep(1);
 	}
 
-	printf("exit.\n");
+	CellLog::Info("exit.\n");
 	return 0;
 }
