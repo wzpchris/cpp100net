@@ -139,6 +139,7 @@
     <ClInclude Include="CellBuffer.hpp" />
     <ClInclude Include="CellClient.hpp" />
     <ClInclude Include="CellLog.hpp" />
+    <ClInclude Include="CellNetWork.hpp" />
     <ClInclude Include="CellSemaphore.hpp" />
     <ClInclude Include="CellServer.hpp" />
     <ClInclude Include="CellTask.hpp" />

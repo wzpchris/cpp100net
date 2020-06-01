@@ -5,6 +5,7 @@
 #include "CellClient.hpp"
 #include "INetEvent.hpp"
 #include "CellServer.hpp"
+#include "CellNetWork.hpp"
 
 
 #include <vector>
@@ -42,22 +43,7 @@ public:
 
 	//初始化socket
 	SOCKET InitSocket() {
-		//启动Win Sock 2.x环境
-#ifdef _WIN32
-		//启动Windows socket 2.X环境
-		WORD ver = MAKEWORD(2, 2);
-		WSADATA dat;
-		//启动，需要添加库文件ws2_32.lib
-		WSAStartup(ver, &dat);
-#endif
-
-#ifndef _WIN32
-		/*if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
-			return 1;
-		}*/
-		//忽略异常信号，默认情况会导致进程终止
-		signal(SIGPIPE, SIG_IGN);
-#endif
+		CellNetWork::Init();
 		//1.建立一个socket
 		if (INVALID_SOCKET != _sock) {
 			CellLog::Info("close before socket...\n");
@@ -188,7 +174,6 @@ public:
 #ifdef _WIN32
 			//关闭套接字closesocket
 			closesocket(_sock);
-			WSACleanup();
 #else 
 			close(_sock);
 #endif
