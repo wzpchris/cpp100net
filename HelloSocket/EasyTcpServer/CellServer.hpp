@@ -165,7 +165,7 @@ public:
 		}
 #else	
 		for (auto iter = _clients.begin(); iter != _clients.end();) {
-			if (FD_ISSET(iter.first, &fdRead)) {
+			if (FD_ISSET(iter->first, &fdRead)) {
 				if (-1 == iter->second->SendDataReal()) {
 					OnClientLeave(iter->second);
 					iter = _clients.erase(iter);
@@ -191,7 +191,7 @@ public:
 		}
 #else	
 		for (auto iter = _clients.begin(); iter != _clients.end();) {
-			if (FD_ISSET(iter.first, &fdRead)) {
+			if (FD_ISSET(iter->first, &fdWrite)) {
 				if (-1 == iter->second->SendDataReal()) {
 					OnClientLeave(iter->second);
 					iter = _clients.erase(iter);

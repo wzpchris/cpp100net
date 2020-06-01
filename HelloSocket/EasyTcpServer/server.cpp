@@ -111,8 +111,8 @@ int main() {
 	Sleep(100);
 	task.Close();*/
 
-	while (true) {
+	/*while (true) {
 		Sleep(1);
-	}
+	}*/
 	return 0;
 }

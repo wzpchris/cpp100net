@@ -50,6 +50,14 @@ public:
 		//启动，需要添加库文件ws2_32.lib
 		WSAStartup(ver, &dat);
 #endif
+
+#ifndef _WIN32
+		/*if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+			return 1;
+		}*/
+		//忽略异常信号，默认情况会导致进程终止
+		signal(SIGPIPE, SIG_IGN);
+#endif
 		//1.建立一个socket
 		if (INVALID_SOCKET != _sock) {
 			printf("close before socket...\n");
