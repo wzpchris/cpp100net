@@ -22,6 +22,22 @@ public:
 	}
 
 	bool push(const char* pData, int nLen) {
+		//写入大量数据不一定要放到内存中
+		//也可以存储到数据库或者磁盘中
+		//if (_nLast + nLen > _nSize) {
+		//	//需要写入的数据大于可用空间
+		//	int n = (_nLast + nLen) - _nSize;
+		//	//拓展Buff大小
+		//	if (n < 8192) {
+		//		n = 8192;
+		//	}
+		//	char* buff = new char[_nSize + n];
+		//	memcpy(buff, _pBuff, _nLast);
+		//	delete[] _pBuff;
+		//	_pBuff = buff;
+		//	_nSize += n;
+		//}
+
 		if (_nLast + nLen <= _nSize) {
 			//将数据 拷贝到缓冲区尾部
 			memcpy(_pBuff + _nLast, pData, nLen);
