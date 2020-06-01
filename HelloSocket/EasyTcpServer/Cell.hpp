@@ -22,6 +22,7 @@
 
 
 //自定义
+#include "CellLog.hpp"
 #include "MessageHeader.hpp"
 #include "CellTimestamp.hpp"
 #include "CellTask.hpp"

@@ -32,7 +32,7 @@ public:
 			{
 				pClient->resetDtHeart();
 				netmsg_Login *login = (netmsg_Login*)header;
-				//printf("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login->dataLength, login->cmd, login->UserName, login->PassWord);
+				//CellLog::Info("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login->dataLength, login->cmd, login->UserName, login->PassWord);
 				//忽略判断用户密码是否正确的过程
 				//发送数据 这里的发送有性能瓶颈
 				//接收 消息  -->  处理 发送
@@ -41,7 +41,7 @@ public:
 				if (SOCKET_ERROR == pClient->SendData(&ret)) {
 					//发送缓冲区满了，消息没发出去
 					//这里可以将没有发送出去的消息放入数据库或者文件中，之后再发送
-					printf("send buff full sock[%d]\n", pClient->sockfd());
+					CellLog::Info("send buff full sock[%d]\n", pClient->sockfd());
 				}
 				/*netmsg_LoginR *ret = new netmsg_LoginR();	
 				pCellServer->addSendTask(pClient, ret);*/
@@ -50,7 +50,7 @@ public:
 			case CMD_LOGOUT:
 			{
 				netmsg_LogOut *logout = (netmsg_LogOut*)header;
-				//printf("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout->dataLength, logout->cmd, logout->UserName);
+				//CellLog::Info("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout->dataLength, logout->cmd, logout->UserName);
 				//忽略判断用户密码是否正确的过程
 				netmsg_LogOutR ret;
 				pClient->SendData(&ret);
@@ -67,7 +67,7 @@ public:
 			break;
 			default:
 			{
-				printf("recv unknow sock=%d, msglen=%d...\n", pClient->sockfd(), header->dataLength);
+				CellLog::Info("recv unknow sock=%d, msglen=%d...\n", pClient->sockfd(), header->dataLength);
 				/*netmsg_DataHeader ret;
 				pClient->SendData(&ret);*/
 			}
@@ -81,6 +81,7 @@ public:
 };
 
 int main() {
+	CellLog::Instance().setLogPath("serverLog.txt", "w");
 	MyServer server;
 	server.InitSocket();
 	server.Bind(nullptr, 4567);
@@ -97,22 +98,24 @@ int main() {
 		scanf("%s", cmdBuf);
 		if (0 == strcmp(cmdBuf, "exit")) {
 			server.Close();
-			printf("client exit cmdThread...\n");
+			CellLog::Info("client exit cmdThread...\n");
+			//CellLog::Info("client exit cmdThread...\n");
 			break;
 		}
 		else {
-			printf("no support cmd.\n");
+			CellLog::Info("no support cmd.\n");
 		}
 	}
 	
-	printf("exit.\n");
+	CellLog::Info("exit.\n");
 	/*CellTaskServer task;
 	task.Start();
 	Sleep(100);
 	task.Close();*/
-
-	/*while (true) {
-		Sleep(1);
-	}*/
+//#ifdef _WIN32
+//	while (true) {
+//		Sleep(1);
+//	}
+//#endif
 	return 0;
 }

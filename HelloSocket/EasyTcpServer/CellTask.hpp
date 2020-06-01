@@ -50,9 +50,9 @@ public:
 	}
 
 	void Close() {
-		printf("CellTaskServer.Close start serverid[%d]\n", serverId);
+		//CellLog::Info("CellTaskServer.Close start serverid[%d]\n", serverId);
 		_thread.Close();
-		printf("CellTaskServer.Close end serverid[%d]\n", serverId);
+		//CellLog::Info("CellTaskServer.Close end serverid[%d]\n", serverId);
 	}
 
 protected:
@@ -83,7 +83,12 @@ protected:
 			_tasks.clear();
 		}
 
-		printf("CellTaskServer.OnRun serverid[%d]\n", serverId);
+		//处理缓冲任务
+		for (auto pTask : _tasksBuf) {
+			pTask();
+		}
+
+		//CellLog::Info("CellTaskServer.OnRun serverid[%d]\n", serverId);
 	}
 };
 #endif 

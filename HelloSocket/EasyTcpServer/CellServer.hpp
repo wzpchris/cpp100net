@@ -19,9 +19,9 @@ public:
 		_taskServer.serverId = id;
 	}
 	~CellServer() {
-		printf("CellServer exit start id[%d]\n", _id);
+		CellLog::Info("CellServer exit start id[%d]\n", _id);
 		Close();
-		printf("CellServer exit end id[%d]\n", _id);
+		CellLog::Info("CellServer exit end id[%d]\n", _id);
 	}
 
 	void setEventObj(INetEvent *pNetEvent) {
@@ -30,10 +30,10 @@ public:
 
 	//关闭socket
 	void Close() {
-		printf("CellServer[%d].Close start\n", _id);
+		CellLog::Info("CellServer[%d].Close start\n", _id);
 		_taskServer.Close();
 		_thread.Close();
-		printf("CellServer[%d].Close end\n", _id);
+		CellLog::Info("CellServer[%d].Close end\n", _id);
 		
 	}
 
@@ -99,7 +99,7 @@ public:
 			//timeval t = { 1, 0 };
 			int ret = select(_maxSock + 1, &fdRead, &fdWrite, nullptr, &t);
 			if (ret < 0) {
-				printf("CellServer.OnRun select error exit\n");
+				CellLog::Info("CellServer.OnRun select error exit\n");
 				pThread->Exit();
 				break;
 			}
@@ -110,14 +110,14 @@ public:
 			WriteData(fdWrite);
 			//有问题的是作为可写的,直接剔除
 			//WriteData(fdExc);
-			////printf("CellServer.OnRun.select id[%d]: fdRead=%d, fdWrite=%d, fdExc=%d\n", _id, fdRead.fd_count, fdWrite.fd_count, fdExc.fd_count);
+			////CellLog::Info("CellServer.OnRun.select id[%d]: fdRead=%d, fdWrite=%d, fdExc=%d\n", _id, fdRead.fd_count, fdWrite.fd_count, fdExc.fd_count);
 			//if (fdExc.fd_count > 0) {
-			//	printf("#### CellServer.OnRun.select id[%d]: fdExc=%d\n", _id, fdExc.fd_count);
+			//	CellLog::Info("#### CellServer.OnRun.select id[%d]: fdExc=%d\n", _id, fdExc.fd_count);
 			//}
 			CheckTime();
 		}
 
-		printf("CellServer.OnRun id[%d] exit\n", _id);
+		CellLog::Info("CellServer.OnRun id[%d] exit\n", _id);
 	}
 
 	void CheckTime() {

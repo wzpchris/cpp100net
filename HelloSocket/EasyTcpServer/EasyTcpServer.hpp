@@ -60,16 +60,16 @@ public:
 #endif
 		//1.建立一个socket
 		if (INVALID_SOCKET != _sock) {
-			printf("close before socket...\n");
+			CellLog::Info("close before socket...\n");
 			Close();
 		}
 
 		_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (INVALID_SOCKET == _sock) {
-			printf("socket error ...\n");
+			CellLog::Info("socket error ...\n");
 		}
 		else {
-			printf("socket success sock=%d...\n", (int)_sock);
+			CellLog::Info("socket success sock=%d...\n", (int)_sock);
 		}
 		return _sock;
 	}
@@ -100,10 +100,10 @@ public:
 #endif
 		int ret = bind(_sock, (const sockaddr *)&_sin, sizeof(sockaddr_in));
 		if (SOCKET_ERROR == ret) {
-			printf("bind error...\n");
+			CellLog::Info("bind error...\n");
 		}
 		else {
-			printf("bind success port[%d]...\n", (int)port);
+			CellLog::Info("bind success port[%d]...\n", (int)port);
 		}
 
 		return ret;
@@ -115,10 +115,10 @@ public:
 		int ret = listen(_sock, n);
 		if (SOCKET_ERROR == ret)
 		{
-			printf("listen error sock[%d]...\n", (int)_sock);
+			CellLog::Info("listen error sock[%d]...\n", (int)_sock);
 		}
 		else {
-			printf("listen success sock[%d]...\n", (int)_sock);
+			CellLog::Info("listen success sock[%d]...\n", (int)_sock);
 		}
 
 		return ret;
@@ -136,7 +136,7 @@ public:
 		cSock = accept(_sock, (sockaddr*)&clientAddr, (socklen_t*)&nAddrLen);
 #endif
 		if (INVALID_SOCKET == cSock) {
-			printf("error invalid SOCKET sock[%d]...\n", (int)_sock);
+			CellLog::Info("error invalid SOCKET sock[%d]...\n", (int)_sock);
 		}
 		else {
 			//将新客户端分配给客户数量最少的cellServer
@@ -179,7 +179,7 @@ public:
 	//关闭socket
 	void Close() {
 		if (_sock != INVALID_SOCKET) {
-			printf("EasyTcpServer.Close start\n");
+			CellLog::Info("EasyTcpServer.Close start\n");
 			_thread.Close();
 			for (auto cs : _cellServers) {
 				delete cs;
@@ -193,7 +193,7 @@ public:
 			close(_sock);
 #endif
 			_sock = INVALID_SOCKET;
-			printf("EasyTcpServer.Close end\n");
+			CellLog::Info("EasyTcpServer.Close end\n");
 		}
 	}
 	
@@ -201,7 +201,7 @@ public:
 	void time4msg() {
 		auto t1 = _tTime.getElapsedSecond();
 		if (t1 >= 1.0) {
-			printf("thread<%d>, time<%lf>, sock<%d>, clients<%d>, recv<%d>, msg<%d>\n", (int)_cellServers.size(), t1, _sock, (int)_clientCount, int(_recvCount / t1), int(_msgCount / t1));
+			CellLog::Info("thread<%d>, time<%lf>, sock<%d>, clients<%d>, recv<%d>, msg<%d>\n", (int)_cellServers.size(), t1, _sock, (int)_clientCount, int(_recvCount / t1), int(_msgCount / t1));
 			_recvCount = 0;
 			_msgCount = 0;
 			_tTime.update();
@@ -242,7 +242,7 @@ private:
 			timeval t = { 0, 1 };
 			int ret = select(_sock + 1, &fdRead, nullptr, nullptr, &t);
 			if (ret < 0) {
-				printf("EasyTcpServer.OnRun select error exit.\n");
+				CellLog::Info("EasyTcpServer.OnRun select error exit.\n");
 				pThread->Exit();
 				break;
 			}
