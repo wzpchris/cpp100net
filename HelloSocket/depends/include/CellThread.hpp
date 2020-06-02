@@ -7,6 +7,11 @@
 #include "CellSemaphore.hpp"
 
 class CellThread {
+public:
+	static void Sleep(time_t dt) {
+		std::chrono::milliseconds t(dt);
+		std::this_thread::sleep_for(t);
+	}
 private: 
 	using EventCall = std::function<void(CellThread *)>;
 public:

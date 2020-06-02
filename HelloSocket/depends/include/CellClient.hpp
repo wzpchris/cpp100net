@@ -72,8 +72,12 @@ public:
 	//缓冲区的控制根据业务需求的差异而调整
 	//发送指定Socket数据(这里需要定时定量发送数据)
 	int SendData(netmsg_DataHeader *header) {
-		if (_sendBuff.push((const char*)header, header->dataLength)) {
-			return header->dataLength;
+		return SendData((const char*)header, header->dataLength);
+	}
+
+	int SendData(const char* pData, int len) {
+		if (_sendBuff.push(pData, len)) {
+			return len;
 		}
 		return SOCKET_ERROR;
 	}

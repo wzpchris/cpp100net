@@ -1,5 +1,6 @@
 //#include "Alloctor.h"
 #include "EasyTcpServer.hpp"
+#include "CellMsgStream.hpp"
 
 #include <cstdio>
 #include <thread>    //c++标准线程库
@@ -49,13 +50,49 @@ public:
 			break;
 			case CMD_LOGOUT:
 			{
-				netmsg_LogOut *logout = (netmsg_LogOut*)header;
-				//CellLog::Info("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout->dataLength, logout->cmd, logout->UserName);
-				//忽略判断用户密码是否正确的过程
-				netmsg_LogOutR ret;
-				pClient->SendData(&ret);
+				//netmsg_LogOut *logout = (netmsg_LogOut*)header;
+				////CellLog::Info("recv client msg: [len=%d, cmd=%d, username=%s]\n", logout->dataLength, logout->cmd, logout->UserName);
+				////忽略判断用户密码是否正确的过程
+				//netmsg_LogOutR ret;
+				//pClient->SendData(&ret);
 				/*netmsg_LogOutR *ret = new netmsg_LogOutR();
 				pCellServer->addSendTask(pClient, ret);*/
+				
+				CellRecvStream r(header);
+
+				auto n1 = r.readInt8();
+				auto n2 = r.readInt16();
+				auto n3 = r.readInt32();
+				auto n4 = r.readFloat();
+				auto n5 = r.readDouble();
+
+				uint32_t n = 0;
+				r.onlyRead(n);
+
+				char name[32] = {};
+				auto n6 = r.readArray(name, 32);
+				char pw[32] = {};
+				auto n7 = r.readArray(pw, 32);
+
+				int data[10] = {};
+				auto n8 = r.readArray(data, 10);
+
+				CellSendStream s;
+				s.setNetCmd(CMD_LOGOUT_RESULT);
+				s.writeInt8(1);
+				s.writeInt16(2);
+				s.writeInt32(3);
+				s.writeFloat(4.5f);
+				s.writeDouble(6.7);
+				const char* str = "server";
+				s.writeArray(str, strlen(str));
+				char a[] = "ahah";
+				s.writeArray(a, strlen(a));
+				int b[] = { 1, 2, 3, 4, 5 };
+				s.writeArray(b, 5);
+				s.finish();
+
+				pClient->SendData(s.data(), s.length());
 			}
 			break;
 			case CMD_C2S_HEART:

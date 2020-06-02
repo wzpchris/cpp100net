@@ -37,7 +37,7 @@ public:
 
 	//连接服务器
 	int Connect(const char *ip, short port) {
-		if (_pClient) {
+		if (_pClient == nullptr) {
 			InitSocket();
 		}
 		//2.链接服务器connect
@@ -124,15 +124,18 @@ public:
 
 	//接收数据 处理粘包 拆分包
 	int RecvData(SOCKET cSock) {
-		int nLen = _pClient->RecvData();
-		if (nLen > 0) {
-			while (_pClient->hasMsg()) {
-				OnNetMsg(_pClient->front_msg());
-				_pClient->pop_front_msg();
+		if (IsRun()) {
+			int nLen = _pClient->RecvData();
+			if (nLen > 0) {
+				while (_pClient->hasMsg()) {
+					OnNetMsg(_pClient->front_msg());
+					_pClient->pop_front_msg();
+				}
 			}
+
+			return nLen;
 		}
-		
-		return nLen;
+		return 0;
 	}
 
 	//响应网络消息
@@ -140,7 +143,17 @@ public:
 
 	//发送数据
 	int SendData(netmsg_DataHeader *header) {
-		return _pClient->SendData(header);
+		if (IsRun()) {
+			return _pClient->SendData(header);
+		}
+		return 0;
+	}
+
+	int SendData(const char* pData, int len) {
+		if (IsRun()) {
+			return _pClient->SendData(pData, len);
+		}
+		return 0;
 	}
 protected:
 	CellClient* _pClient = nullptr;
