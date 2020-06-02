@@ -65,6 +65,8 @@ public:
 				continue;
 			}
 
+			CheckTime();
+
 			//伯克利 BSD	socket
 			fd_set fdRead;
 			fd_set fdWrite;
@@ -74,7 +76,6 @@ public:
 				_clients_change = false;
 
 				FD_ZERO(&fdRead);
-				FD_ZERO(&fdWrite);
 				//FD_ZERO(&fdExc);
 
 				_maxSock = (_clients.begin()->second)->sockfd();
@@ -90,22 +91,40 @@ public:
 				memcpy(&fdRead, &_fdRead_bak, sizeof(fd_set));
 			}
 
-			memcpy(&fdWrite, &_fdRead_bak, sizeof(fd_set));
+			bool bNeedWrite = false;
+			FD_ZERO(&fdWrite);
+			for (auto iter : _clients) {
+				//需要写数据的客户端，才加入fd_set检测是否可写
+				if (iter.second->needWrite()) {
+					FD_SET(iter.first, &fdWrite);
+					bNeedWrite = true;
+				}
+			}
+
+			//memcpy(&fdWrite, &_fdRead_bak, sizeof(fd_set));
 			//memcpy(&fdExc, &_fdRead_bak, sizeof(fd_set));
 
 			//nfds是一个整数值，是指fd_set集合中所有描述符(socket)的范围，而不是数量
 			//即是所有文件描述符最大值+1，在windows中这个参数可以写0
 			timeval t = { 0, 1 }; //这是是非阻塞，将导致单核CPU达到100%
 			//timeval t = { 1, 0 };
-			int ret = select(_maxSock + 1, &fdRead, &fdWrite, nullptr, &t);
+			int ret = 0;
+			if (bNeedWrite) {
+				ret = select(_maxSock + 1, &fdRead, &fdWrite, nullptr, &t);
+			}
+			else {
+				ret = select(_maxSock + 1, &fdRead, nullptr, nullptr, &t);
+			}
+
 			if (ret < 0) {
 				CellLog::Info("CellServer.OnRun select error exit\n");
 				pThread->Exit();
 				break;
 			}
-			/*else if (ret == 0) {
+			else if (ret == 0) {
 				continue;
-			}*/
+			}
+
 			ReadData(fdRead);
 			WriteData(fdWrite);
 			//有问题的是作为可写的,直接剔除
@@ -114,7 +133,6 @@ public:
 			//if (fdExc.fd_count > 0) {
 			//	CellLog::Info("#### CellServer.OnRun.select id[%d]: fdExc=%d\n", _id, fdExc.fd_count);
 			//}
-			CheckTime();
 		}
 
 		CellLog::Info("CellServer.OnRun id[%d] exit\n", _id);
@@ -191,7 +209,7 @@ public:
 		}
 #else	
 		for (auto iter = _clients.begin(); iter != _clients.end();) {
-			if (FD_ISSET(iter->first, &fdWrite)) {
+			if (iter->second->needWrite() && FD_ISSET(iter->first, &fdWrite)) {
 				if (-1 == iter->second->SendDataReal()) {
 					OnClientLeave(iter->second);
 					iter = _clients.erase(iter);
