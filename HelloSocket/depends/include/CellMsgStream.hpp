@@ -5,12 +5,17 @@
 #include "CellStream.hpp"
 
 //消息数据字节流
-class CellRecvStream:public CellStream {
+class CellReadStream:public CellStream {
 public:
-	CellRecvStream(netmsg_DataHeader* header)
-		:CellStream((char*)header, header->dataLength)
+	CellReadStream(netmsg_DataHeader* header)
+		:CellReadStream((char*)header, header->dataLength)
 	{
-		push(header->dataLength);
+	}
+
+	CellReadStream(char* pData, int nSize, bool bDelete = false)
+		: CellStream(pData, nSize, bDelete) 
+	{
+		push(nSize);
 		//预先读取消息长度
 		readInt16();
 		//预先读取消息命令
@@ -24,16 +29,16 @@ public:
 	}
 };
 
-class CellSendStream :public CellStream {
+class CellWriteStream :public CellStream {
 public:
-	CellSendStream(char* pData, int nSize, bool bDelete = false)
+	CellWriteStream(char* pData, int nSize, bool bDelete = false)
 		:CellStream(pData, nSize, bDelete)
 	{
 		//预先占领消息长度所需空间
 		write<uint16_t>(0);
 	}
 
-	CellSendStream(int nSize = 1024) :CellStream(nSize) {
+	CellWriteStream(int nSize = 1024) :CellStream(nSize) {
 		//预先占领消息长度所需空间
 		write<uint16_t>(0);
 	}

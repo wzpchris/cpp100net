@@ -15,6 +15,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HelloMemory", "HelloMemory\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HelloCpp", "HelloCpp\HelloCpp.vcxproj", "{D26E9E00-0CE9-45D7-8051-801D7B15CF82}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CppNet100", "CppNet100\CppNet100.vcxproj", "{732DB62F-AA6A-4AE9-B723-A16711B5373B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -71,6 +73,14 @@ Global
 		{D26E9E00-0CE9-45D7-8051-801D7B15CF82}.Release|x64.Build.0 = Release|x64
 		{D26E9E00-0CE9-45D7-8051-801D7B15CF82}.Release|x86.ActiveCfg = Release|Win32
 		{D26E9E00-0CE9-45D7-8051-801D7B15CF82}.Release|x86.Build.0 = Release|Win32
+		{732DB62F-AA6A-4AE9-B723-A16711B5373B}.Debug|x64.ActiveCfg = Debug|x64
+		{732DB62F-AA6A-4AE9-B723-A16711B5373B}.Debug|x64.Build.0 = Debug|x64
+		{732DB62F-AA6A-4AE9-B723-A16711B5373B}.Debug|x86.ActiveCfg = Debug|Win32
+		{732DB62F-AA6A-4AE9-B723-A16711B5373B}.Debug|x86.Build.0 = Debug|Win32
+		{732DB62F-AA6A-4AE9-B723-A16711B5373B}.Release|x64.ActiveCfg = Release|x64
+		{732DB62F-AA6A-4AE9-B723-A16711B5373B}.Release|x64.Build.0 = Release|x64
+		{732DB62F-AA6A-4AE9-B723-A16711B5373B}.Release|x86.ActiveCfg = Release|Win32
+		{732DB62F-AA6A-4AE9-B723-A16711B5373B}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

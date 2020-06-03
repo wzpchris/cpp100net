@@ -17,7 +17,7 @@ public:
 	}
 
 	//初始化socket
-	void InitSocket() {
+	void InitSocket(int sendSize = SEND_BUFF_SIZE, int recvSize = RECV_BUFF_SIZE) {
 		CellNetWork::Init();
 		//1.建立一个socket
 		if (_pClient) {
@@ -31,7 +31,7 @@ public:
 		}
 		else {
 			//CellLog::Info("socket success sock=%d...\n", _sock);
-			_pClient = new CellClient(sock);
+			_pClient = new CellClient(sock, sendSize, recvSize);
 		}
 	}
 

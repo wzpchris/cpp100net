@@ -121,6 +121,34 @@ public:
 		read(n);
 		return n;
 	}
+
+	int64_t readInt64() {
+		int64_t n;
+		read(n);
+		return n;
+	}
+
+	uint8_t readUInt8(/*int8_t def = 0*/) {
+		uint8_t n = 0;
+		read(n);
+		return n;
+	}
+	uint16_t readUInt16() {
+		uint16_t n = 0;
+		read(n);
+		return n;
+	}
+	uint32_t readUInt32() {
+		uint32_t n;
+		read(n);
+		return n;
+	}
+
+	uint64_t readUInt64() {
+		uint64_t n;
+		read(n);
+		return n;
+	}
 	float readFloat() {
 		float n;
 		read(n);

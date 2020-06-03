@@ -11,7 +11,7 @@ public:
 		{
 		case CMD_LOGOUT_RESULT:
 		{
-			CellRecvStream r(header);
+			CellReadStream r(header);
 			auto n1 = r.readInt8();
 			auto n2 = r.readInt16();
 			auto n3 = r.readInt32();
@@ -49,7 +49,7 @@ public:
 
 int main() {
 	CellLog::Instance().setLogPath("socketStream.log", "w");
-	CellSendStream s;
+	CellWriteStream s;
 	s.setNetCmd(CMD_LOGOUT);
 	s.writeInt8(1);
 	s.writeInt16(2);

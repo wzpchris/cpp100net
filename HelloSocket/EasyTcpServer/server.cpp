@@ -58,7 +58,7 @@ public:
 				/*netmsg_LogOutR *ret = new netmsg_LogOutR();
 				pCellServer->addSendTask(pClient, ret);*/
 				
-				CellRecvStream r(header);
+				CellReadStream r(header);
 
 				auto n1 = r.readInt8();
 				auto n2 = r.readInt16();
@@ -77,19 +77,16 @@ public:
 				int data[10] = {};
 				auto n8 = r.readArray(data, 10);
 
-				CellSendStream s;
+				CellWriteStream s;
 				s.setNetCmd(CMD_LOGOUT_RESULT);
-				s.writeInt8(1);
-				s.writeInt16(2);
-				s.writeInt32(3);
-				s.writeFloat(4.5f);
-				s.writeDouble(6.7);
-				const char* str = "server";
-				s.writeArray(str, strlen(str));
-				char a[] = "ahah";
-				s.writeArray(a, strlen(a));
-				int b[] = { 1, 2, 3, 4, 5 };
-				s.writeArray(b, 5);
+				s.writeInt8(n1);
+				s.writeInt16(n2);
+				s.writeInt32(n3);
+				s.writeFloat(n4);
+				s.writeDouble(n5);
+				s.writeArray(name, n6);
+				s.writeArray(pw, n7);
+				s.writeArray(data, n8);
 				s.finish();
 
 				pClient->SendData(s.data(), s.length());
