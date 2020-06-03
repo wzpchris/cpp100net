@@ -1,4 +1,4 @@
-#ifndef _EASY_TCP_SERVER_HPP_
+﻿#ifndef _EASY_TCP_SERVER_HPP_
 #define _EASY_TCP_SERVER_HPP_
 
 #include "Cell.hpp"
@@ -7,14 +7,13 @@
 #include "CellServer.hpp"
 #include "CellNetWork.hpp"
 
-
 #include <vector>
 #include <map>
 #include <thread>
 #include <mutex>
 #include <atomic> 
 
-class EasyTcpServer:public INetEvent {
+class EasyTcpServer :public INetEvent {
 private:
 	CellThread _thread;
 	//消息处理对象，内部会创建线程
@@ -60,7 +59,7 @@ public:
 		return _sock;
 	}
 	//绑定端口号
-	int Bind(const char *ip, unsigned int port) {
+	int Bind(const char* ip, unsigned int port) {
 		if (INVALID_SOCKET == _sock) {
 			InitSocket();
 		}
@@ -68,7 +67,6 @@ public:
 		sockaddr_in _sin = {};
 		_sin.sin_family = AF_INET;
 		_sin.sin_port = htons(port);
-		
 #ifdef _WIN32
 		if (ip != NULL) {
 			_sin.sin_addr.S_un.S_addr = inet_addr(ip);
@@ -84,7 +82,7 @@ public:
 			_sin.sin_addr.s_addr = INADDR_ANY;
 		}
 #endif
-		int ret = bind(_sock, (const sockaddr *)&_sin, sizeof(sockaddr_in));
+		int ret = bind(_sock, (const sockaddr*)&_sin, sizeof(sockaddr_in));
 		if (SOCKET_ERROR == ret) {
 			CellLog::Info("bind error...\n");
 		}
@@ -133,7 +131,7 @@ public:
 		return cSock;
 	}
 
-	void addClientToCellServer(CellClient *pClient) {
+	void addClientToCellServer(CellClient* pClient) {
 		//查找客户数量最少的
 		auto pMinServer = _cellServers[0];
 		for (auto pCellServer : _cellServers) {
@@ -156,8 +154,8 @@ public:
 		}
 
 		_thread.Start(
-			nullptr, 
-			[this](CellThread *pThread) {
+			nullptr,
+			[this](CellThread* pThread) {
 				OnRun(pThread);
 			});
 	}
@@ -181,7 +179,7 @@ public:
 			CellLog::Info("EasyTcpServer.Close end\n");
 		}
 	}
-	
+
 	//计算并输出每秒收到的网络消息
 	void time4msg() {
 		auto t1 = _tTime.getElapsedSecond();
@@ -193,28 +191,28 @@ public:
 		}
 	}
 	//只会被一个线程调用
-	virtual void OnNetJoin(CellClient *pClient) {
+	virtual void OnNetJoin(CellClient* pClient) {
 		_clientCount++;
 	}
 	//cellServer 4 多个线程触发 不安全
 	//如果只开启1个cellServer就是安全的
-	virtual void OnNetLeave(CellClient *pClient) {
+	virtual void OnNetLeave(CellClient* pClient) {
 		_clientCount--;
 	}
 
 	//cellServer 4 多个线程触发 不安全
 	//如果只开启1个cellServer就是安全的
-	virtual void OnNetMsg(CellServer *pCellServer, CellClient *pClient, netmsg_DataHeader *header) {
+	virtual void OnNetMsg(CellServer* pCellServer, CellClient* pClient, netmsg_DataHeader* header) {
 		_msgCount++;
 	}
 
-	virtual void OnNetRecv(CellClient *pClient) {
+	virtual void OnNetRecv(CellClient* pClient) {
 		_recvCount++;
 	}
 
 private:
 	//处理网络消息
-	void OnRun(CellThread *pThread) {
+	void OnRun(CellThread* pThread) {
 		while (pThread->isRun()) {
 			time4msg();
 			//伯克利 BSD	socket

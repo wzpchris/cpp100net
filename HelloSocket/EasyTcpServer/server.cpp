@@ -15,7 +15,10 @@ class MyServer :public EasyTcpServer
 public:
 	MyServer() {}
 	~MyServer() {}
-	//客户端加入事件
+	/// <summary>
+	/// 客户端加入事件
+	/// </summary>
+	/// <param name="pClient"></param>
 	virtual void OnNetJoin(CellClient* pClient) {
 		EasyTcpServer::OnNetJoin(pClient);
 	}
@@ -23,7 +26,12 @@ public:
 	virtual void OnNetLeave(CellClient* pClient) {
 		EasyTcpServer::OnNetLeave(pClient);
 	}
-	//客户端消息事件
+	/// <summary>
+	/// 客户端消息事件
+	/// </summary>
+	/// <param name="pCellServer"></param>
+	/// <param name="pClient"></param>
+	/// <param name="header"></param>
 	virtual void OnNetMsg(CellServer* pCellServer, CellClient* pClient, netmsg_DataHeader* header) {
 		EasyTcpServer::OnNetMsg(pCellServer, pClient, header);
 		//6.处理请求
@@ -33,11 +41,16 @@ public:
 		{
 			pClient->resetDtHeart();
 			netmsg_Login* login = (netmsg_Login*)header;
-			//CellLog::Info("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login->dataLength, login->cmd, login->UserName, login->PassWord);
+			/// <summary>
+			/// //CellLog::Info("recv client msg: [len=%d, cmd=%d, username=%s, pwd=%s]\n", login->dataLength, login->cmd, login->UserName, login->PassWord);
 			//忽略判断用户密码是否正确的过程
 			//发送数据 这里的发送有性能瓶颈
 			//接收 消息  -->  处理 发送
 			//生产者  数据缓冲区  消费者
+			/// </summary>
+			/// <param name="pCellServer"></param>
+			/// <param name="pClient"></param>
+			/// <param name="header"></param>
 			netmsg_LoginR ret;
 			if (SOCKET_ERROR == pClient->SendData(&ret)) {
 				//发送缓冲区满了，消息没发出去

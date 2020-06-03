@@ -3,13 +3,14 @@
 
 int funcA(int n, int m) {
 	printf("funcA\n");
+	return 0;
 }
 
 int main() {
 	/*std::function<int(int, int)> call = funcA;
 	call(4, 5);*/
 
-	std::function<int (int, int)> call;
+	std::function<int(int, int)> call;
 	int n = 5;
 	call = [&n/*外部变量捕获列表*/](/*参数列表*/int a, int b) -> int /*返回类型*/
 	{
