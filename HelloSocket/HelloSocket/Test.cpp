@@ -1,11 +1,11 @@
-#include "EasyTcpClient.hpp"
+﻿#include "EasyTcpClient.hpp"
 #include "CellStream.hpp"
 #include "CellMsgStream.hpp"
 #include <iostream>
 
 class MyClient :public EasyTcpClient {
 public:
-	virtual void OnNetMsg(netmsg_DataHeader *header) {
+	virtual void OnNetMsg(netmsg_DataHeader* header) {
 		//6.处理请求
 		switch (header->cmd)
 		{
@@ -59,7 +59,7 @@ int main() {
 	const char* str = "client";
 	s.writeString(str);
 	char a[] = "ahah";
-	s.writeArray(a, strlen(a));	
+	s.writeArray(a, strlen(a));
 	int b[] = { 1, 2, 3, 4, 5 };
 	s.writeArray(b, 5);
 	s.finish();

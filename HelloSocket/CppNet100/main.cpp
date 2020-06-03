@@ -1,4 +1,4 @@
-#ifndef _CPP_NET_100_DLL_H_
+﻿#ifndef _CPP_NET_100_DLL_H_
 #define _CPP_NET_100_DLL_H_
 
 #include <string>
@@ -7,9 +7,9 @@
 #include "CellMsgStream.hpp"
 
 #ifdef _WIN32
-	#define EXPORT_DLL _declspec(dllexport)
+#define EXPORT_DLL _declspec(dllexport)
 #else 
-	#define EXPORT_DLL
+#define EXPORT_DLL
 #endif // _WIN32
 
 extern "C" {
@@ -19,7 +19,7 @@ extern "C" {
 
 class NativeTCPClient :public EasyTcpClient {
 public:
-	virtual void OnNetMsg(netmsg_DataHeader *header) {
+	virtual void OnNetMsg(netmsg_DataHeader* header) {
 		if (_callBack) {
 			_callBack(_csObj, header, header->dataLength);
 		}
@@ -34,7 +34,7 @@ private:
 	OnNetMsgCallBack _callBack = nullptr;
 };
 
-extern "C" 
+extern "C"
 {
 	EXPORT_DLL int Add(int a, int b) {
 		return a + b;
