@@ -15,9 +15,9 @@ public:
 	int id = -1;
 	int serverId = -1;
 public:
-	CellClient(SOCKET sockfd = INVALID_SOCKET, int sendSize = SEND_BUFF_SIZE, int recvSize = RECV_BUFF_SIZE):
+	CellClient(SOCKET sockfd = INVALID_SOCKET, int sendSize = SEND_BUFF_SIZE, int recvSize = RECV_BUFF_SIZE) :
 		_sendBuff(sendSize),
-		_recvBuff(recvSize){
+		_recvBuff(recvSize) {
 		static int n = 1;
 		id = n++;
 		_sockfd = sockfd;
@@ -71,7 +71,7 @@ public:
 
 	//缓冲区的控制根据业务需求的差异而调整
 	//发送指定Socket数据(这里需要定时定量发送数据)
-	int SendData(netmsg_DataHeader *header) {
+	int SendData(netmsg_DataHeader* header) {
 		return SendData((const char*)header, header->dataLength);
 	}
 

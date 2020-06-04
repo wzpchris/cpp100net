@@ -1,4 +1,4 @@
-﻿#ifndef _CPP_NET_100_DLL_H_
+#ifndef _CPP_NET_100_DLL_H_
 #define _CPP_NET_100_DLL_H_
 
 #include <string>

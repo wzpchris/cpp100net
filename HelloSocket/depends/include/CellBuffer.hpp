@@ -1,7 +1,6 @@
 #ifndef _CELL_BUFF_HPP_
 #define _CELL_BUFF_HPP_
 
-
 #include "Cell.hpp"
 
 class CellBuffer {
@@ -86,12 +85,12 @@ public:
 	int read4socket(SOCKET sockfd) {
 		if (_nSize - _nLast > 0) {
 			//接收数据
-			char *szRecv = _pBuff + _nLast;
+			char* szRecv = _pBuff + _nLast;
 			int nLen = (int)recv(sockfd, szRecv, _nSize - _nLast, 0);
 			if (nLen <= 0) {
 				return nLen;
 			}
-		
+
 			//缓冲区的数据尾部位置后移
 			_nLast += nLen;
 			return nLen;
@@ -101,10 +100,10 @@ public:
 	}
 
 	bool hasMsg() {
-		//判断消息缓冲区的数据长度大于消息头netmsg_DataHeader长度
+		// 判断消息缓冲区的数据长度大于消息头netmsg_DataHeader长度
 		if (_nLast >= sizeof(netmsg_DataHeader)) {
 			//这时就可以知道当前消息体的长度
-			netmsg_DataHeader *header = (netmsg_DataHeader*)_pBuff;
+			netmsg_DataHeader* header = (netmsg_DataHeader*)_pBuff;
 			//判断消息缓冲区的数据长度大于消息长度 
 			return _nLast >= header->dataLength;
 		}
@@ -115,13 +114,21 @@ public:
 		return _nLast > 0;
 	}
 private:
-	//缓冲区
+	/// <summary>
+	/// 缓冲区
+	/// </summary>
 	char* _pBuff = nullptr;
-	//缓冲区的数据尾部位置，已有数据长度
+	/// <summary>
+	/// 缓冲区的数据尾部位置，已有数据长度
+	/// </summary>
 	int _nLast = 0;
-	//缓冲区总的空间大小，字节长度
+	/// <summary>
+	/// 缓冲区总的空间大小，字节长度
+	/// </summary>
 	int _nSize = 0;
-	//缓冲区写满次数计数
+	/// <summary>
+	/// 缓冲区写满次数计数
+	/// </summary>
 	int _fullCount = 0;
 };
 

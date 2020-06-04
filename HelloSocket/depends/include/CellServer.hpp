@@ -5,6 +5,7 @@
 #include "INetEvent.hpp"
 #include "CellClient.hpp"
 #include "CellSemaphore.hpp"
+#include "CellLog.hpp"
 
 #include <vector>
 #include <map>
@@ -24,7 +25,7 @@ public:
 		CellLog::Info("CellServer exit end id[%d]\n", _id);
 	}
 
-	void setEventObj(INetEvent *pNetEvent) {
+	void setEventObj(INetEvent* pNetEvent) {
 		_pNetEvent = pNetEvent;
 	}
 
@@ -34,11 +35,11 @@ public:
 		_taskServer.Close();
 		_thread.Close();
 		CellLog::Info("CellServer[%d].Close end\n", _id);
-		
+
 	}
 
 	//处理网络消息
-	void OnRun(CellThread *pThread) {
+	void OnRun(CellThread* pThread) {
 		while (pThread->isRun()) {
 			if (!_clientsBuff.empty())
 			{
@@ -46,7 +47,7 @@ public:
 				std::lock_guard<std::mutex> lock(_mutex);
 				for (auto pClient : _clientsBuff) {
 					_clients[pClient->sockfd()] = pClient;
-					
+
 					pClient->serverId = _id;
 					if (_pNetEvent != nullptr) {
 						_pNetEvent->OnNetJoin(pClient);
@@ -225,7 +226,7 @@ public:
 	//缓冲区处理粘包与分包问题
 	//char _szRecv[RECV_BUFF_SIZE] = {};
 	//接收数据 处理粘包 拆分包
-	int RecvData(CellClient *pClient) {
+	int RecvData(CellClient* pClient) {
 		//接收数据
 		int nLen = pClient->RecvData();
 		if (nLen <= 0) {
@@ -233,7 +234,7 @@ public:
 		}
 		//触发 接收到网络数据事件
 		_pNetEvent->OnNetRecv(pClient);
-		
+
 		//循环 判断是否有消息需要处理
 		while (pClient->hasMsg()) {
 			//处理网络消息
@@ -244,11 +245,11 @@ public:
 		return 0;
 	}
 	//响应网络消息
-	virtual void OnNetMsg(CellClient *pClient, netmsg_DataHeader *header) {
+	virtual void OnNetMsg(CellClient* pClient, netmsg_DataHeader* header) {
 		_pNetEvent->OnNetMsg(this, pClient, header);
 	}
 
-	void addClient(CellClient *pClient) {
+	void addClient(CellClient* pClient) {
 		//_mutex.lock();
 		std::lock_guard<std::mutex> lock(_mutex);
 		_clientsBuff.push_back(pClient);
@@ -258,14 +259,14 @@ public:
 	void Start() {
 		_taskServer.Start();
 		_thread.Start(
-			nullptr, 
-			[this](CellThread *pThread) {
+			nullptr,
+			[this](CellThread* pThread) {
 				OnRun(pThread);
 			},
 			[this](CellThread* pThread) {
 				Clearclients();
 			}
-		);
+			);
 	}
 
 	size_t getClientCount() {
@@ -298,20 +299,20 @@ private: //字节大的往前，小的靠后，主要是为了字节对齐
 	//缓冲队列的锁
 	std::mutex _mutex;
 	//网络事件对象
-	INetEvent *_pNetEvent;
+	INetEvent* _pNetEvent;
 	//
 	CellTaskServer _taskServer;
 
 	//备份客户socket fd_set
 	fd_set _fdRead_bak;
-	
+
 	SOCKET _maxSock;
 
 	//旧的时间
 	time_t _old_time = CellTime::getNowTimeInMilliSec();
 	//
 	CellThread _thread;
-	
+
 	int _id = -1;
 	//客户列表是否有变化
 	bool _clients_change;

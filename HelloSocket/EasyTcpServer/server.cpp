@@ -1,4 +1,5 @@
 //#include "Alloctor.h"
+#include "CellLog.hpp"
 #include "EasyTcpServer.hpp"
 #include "CellMsgStream.hpp"
 
@@ -128,7 +129,7 @@ public:
 };
 
 int main() {
-	CellLog::Instance().setLogPath("serverLog.txt", "w");
+	CellLog::Instance().setLogPath("serverLog.log", "w");
 	MyServer server;
 	server.InitSocket();
 	server.Bind(nullptr, 4567);

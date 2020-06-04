@@ -2,11 +2,12 @@
 #define _EASY_TCP_CLIENT_HPP_
 
 #include "Cell.hpp"
+#include "CellLog.hpp"
 #include "CellNetWork.hpp"
 #include "CellClient.hpp"
 
 class EasyTcpClient
-{	
+{
 public:
 	EasyTcpClient() {
 		_isConnect = false;
@@ -35,8 +36,13 @@ public:
 		}
 	}
 
-	//连接服务器
-	int Connect(const char *ip, short port) {
+	/// <summary>
+	/// //连接服务器
+	/// </summary>
+	/// <param name="ip"></param>
+	/// <param name="port"></param>
+	/// <returns></returns>
+	int Connect(const char* ip, short port) {
 		if (_pClient == nullptr) {
 			InitSocket();
 		}
@@ -97,7 +103,7 @@ public:
 			}
 
 			if (FD_ISSET(_sock, &fdRead)) {
-				if (-1 == RecvData(_sock)) {
+				if (SOCKET_ERROR == RecvData(_sock)) {
 					CellLog::Info("server no msg socket[%d]\n", _sock);
 					Close();
 					return false;
@@ -105,7 +111,7 @@ public:
 			}
 
 			if (FD_ISSET(_sock, &fdWrite)) {
-				if (-1 == _pClient->SendDataReal()) {
+				if (SOCKET_ERROR == _pClient->SendDataReal()) {
 					CellLog::Info("server no msg socket[%d]\n", _sock);
 					Close();
 					return false;
@@ -113,7 +119,7 @@ public:
 			}
 			return true;
 		}
-		
+
 		return false;
 	}
 
@@ -122,7 +128,11 @@ public:
 		return _pClient && _isConnect;
 	}
 
-	//接收数据 处理粘包 拆分包
+	/// <summary>
+	/// //接收数据 处理粘包 拆分包
+	/// </summary>
+	/// <param name="cSock"></param>
+	/// <returns></returns>
 	int RecvData(SOCKET cSock) {
 		if (IsRun()) {
 			int nLen = _pClient->RecvData();
@@ -138,11 +148,18 @@ public:
 		return 0;
 	}
 
-	//响应网络消息
-	virtual void OnNetMsg(netmsg_DataHeader *header) = 0;
+	/// <summary>
+	/// //响应网络消息
+	/// </summary>
+	/// <param name="header"></param>
+	virtual void OnNetMsg(netmsg_DataHeader* header) = 0;
 
-	//发送数据
-	int SendData(netmsg_DataHeader *header) {
+	/// <summary>
+	/// //发送数据
+	/// </summary>
+	/// <param name="header"></param>
+	/// <returns></returns>
+	int SendData(netmsg_DataHeader* header) {
 		if (IsRun()) {
 			return _pClient->SendData(header);
 		}

@@ -1,3 +1,4 @@
+#include "CellLog.hpp"
 #include "EasyTcpClient.hpp"
 #include "CellTimestamp.hpp"
 
@@ -7,27 +8,27 @@
 
 class MyClient :public EasyTcpClient {
 public:
-	virtual void OnNetMsg(netmsg_DataHeader *header) {
+	virtual void OnNetMsg(netmsg_DataHeader* header) {
 		//6.处理请求
 		switch (header->cmd)
 		{
 		case CMD_LOGIN_RESULT:
 		{
-			netmsg_LoginR *loginret = (netmsg_LoginR*)header;
+			netmsg_LoginR* loginret = (netmsg_LoginR*)header;
 			/*CellLog::Info("recv server CMD_LOGIN_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
 				loginret->dataLength, loginret->cmd, loginret->result);*/
 		}
 		break;
 		case CMD_LOGOUT_RESULT:
 		{
-			netmsg_LogOutR *logoutret = (netmsg_LogOutR*)header;
+			netmsg_LogOutR* logoutret = (netmsg_LogOutR*)header;
 			/*CellLog::Info("recv server CMD_LOGOUT_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
 				logoutret->dataLength, logoutret->cmd, logoutret->result);*/
 		}
 		break;
 		case CMD_NEW_USER_JOIN:
 		{
-			netmsg_NewUserJoin *newJoin = (netmsg_NewUserJoin*)header;
+			netmsg_NewUserJoin* newJoin = (netmsg_NewUserJoin*)header;
 			/*CellLog::Info("recv server CMD_NEW_USER_JOIN msg: [len=%d, cmd=%d, sock=%d]\n",
 				newJoin->dataLength, newJoin->cmd, newJoin->sock);*/
 		}
@@ -60,14 +61,21 @@ void cmdThread() {
 	}
 }
 
-//客户端数量
+/// <summary>
+/// //客户端数量
+/// </summary>
 const int nCount = 1000;
-//发送线程数量
+/// <summary>
+/// //发送线程数量
+/// </summary>
 const int tCount = 4;
-//这里不能是EasyTcpClient的数组，因为栈的大小大约只有1M,这里会爆栈
+/// <summary>
+/// //这里不能是EasyTcpClient的数组，因为栈的大小大约只有1M,这里会爆栈
+/// </summary>
 EasyTcpClient* client[nCount];
-std::atomic_int sendCount = 0;
-std::atomic_int readyCount = 0;
+
+std::atomic_int sendCount;
+std::atomic_int readyCount;
 
 void recvThread(int begin, int end) {
 	CellTimestamp t;
@@ -102,7 +110,7 @@ void sendThread(int id) {  //4个线程 ID 1-4
 	}
 
 	CellLog::Info("thread<%d>, Connect<begin=%d, end=%d>\n", id, begin, end);
-	
+
 	readyCount++;
 	while (readyCount < tCount) { //等待其他线程准备好发送数据
 		std::chrono::milliseconds t(10);
@@ -119,7 +127,7 @@ void sendThread(int id) {  //4个线程 ID 1-4
 		strcpy(login[n].UserName, "tom");
 		strcpy(login[n].PassWord, "tom");
 	}
-	
+
 	const int nLen = sizeof(login);
 	while (g_bRun) {
 		for (int n = begin; n < end; ++n) {
@@ -130,12 +138,12 @@ void sendThread(int id) {  //4个线程 ID 1-4
 		std::chrono::milliseconds t(100);
 		std::this_thread::sleep_for(t);
 	}
-	
+
 	for (int n = begin; n < end; ++n) {
 		client[n]->Close();
 		delete client[n];
 	}
-	CellLog::Info("thread<%d>, exit\n", id);
+	CellLog_Info("thread<%d>, exit\n", id);
 }
 
 int main() {
