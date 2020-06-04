@@ -2,6 +2,7 @@
 #include "CellLog.hpp"
 #include "EasyTcpServer.hpp"
 #include "CellMsgStream.hpp"
+#include "CellConfig.hpp"
 
 #include <cstdio>
 #include <thread>    //c++标准线程库
@@ -128,13 +129,58 @@ public:
 	}
 };
 
-int main() {
+char* argToStr(int argc, char* args[], int index, char* def, const char* argName) {
+	if (index >= argc) {
+		CellLog_Error("argToStr, index=%d argc=%d argName=%s\n", index, argc, argName);
+	}
+	else {
+		def = args[index];
+	}
+
+	CellLog_Info("%s=%s\n", argName, def);
+	return def;
+}
+
+int argToInt(int argc, char* args[], int index, int def, const char* argName) {
+	if (index >= argc) {
+		CellLog_Error("argToStr, index=%d argc=%d argName=%s\n", index, argc, argName);
+	}
+	else {
+		def = atoi(args[index]);
+	}
+
+	CellLog_Info("%s=%d\n", argName, def);
+	return def;
+}
+
+int main(int argc, char* args[]) {
 	CellLog::Instance().setLogPath("serverLog.log", "w");
+	
+	CellConfig::Instance().Init(argc, args);
+
+	/*const char* strIPDef = "127.0.0.1";
+	char* strIP = argToStr(argc, args, 1, (char*)strIPDef, "strIP");
+	uint16_t nPort = argToInt(argc, args, 2, 4567, "nPort");
+	int nThread = argToInt(argc, args, 3, 1, "nThread");
+	int nClient = argToInt(argc, args, 4, 1, "nClient");*/
+	const char* strIP = CellConfig::Instance().getStr("strIP", "127.0.0.1");
+	uint16_t nPort = CellConfig::Instance().getInt("nPort", 4567);
+	int nThread = CellConfig::Instance().getInt("nThread", 1);
+	int nClient = CellConfig::Instance().getInt("nClient", 1);
+
+	if (CellConfig::Instance().hasKey("-p")) {
+		CellLog_Info("hasKey -p");
+	}
+
+	if (strcmp(strIP, "any") == 0) {
+		strIP = nullptr;
+	}
+
 	MyServer server;
 	server.InitSocket();
-	server.Bind(nullptr, 4567);
+	server.Bind(strIP, nPort);
 	server.Listen(64);
-	server.Start(4);
+	server.Start(nThread);
 
 	////启动UI线程
 	//std::thread t1(cmdThread, &server);

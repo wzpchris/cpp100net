@@ -3,6 +3,7 @@
 
 #include "Cell.hpp"
 #include <cstdint>
+#include <string>
 
 //字节流BYTE
 class CellStream {
