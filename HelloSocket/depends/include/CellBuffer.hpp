@@ -75,8 +75,19 @@ public:
 		if (_nLast > 0 && INVALID_SOCKET != sockfd) {
 			//发送数据
 			ret = send(sockfd, _pBuff, _nLast, 0);
-			//数据尾部位置置0
-			_nLast = 0;
+			if (ret <= 0) {
+				return SOCKET_ERROR;
+			}
+
+			if (ret == _nLast) {
+				//数据尾部位置清零
+				_nLast = 0;
+			}
+			else {
+				//_nLast=2000 实际上可能只发送了 ret=1000
+				_nLast -= ret;
+				memcpy(_pBuff, _pBuff + ret, _nLast);
+			}
 			_fullCount = 0;
 		}
 		return ret;
@@ -88,7 +99,7 @@ public:
 			char* szRecv = _pBuff + _nLast;
 			int nLen = (int)recv(sockfd, szRecv, _nSize - _nLast, 0);
 			if (nLen <= 0) {
-				return nLen;
+				return SOCKET_ERROR;
 			}
 
 			//缓冲区的数据尾部位置后移

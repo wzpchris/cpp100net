@@ -70,8 +70,7 @@ protected:
 
 			//如果没有任务
 			if (_tasks.empty()) {
-				std::chrono::milliseconds t(1);
-				std::this_thread::sleep_for(t);
+				CellThread::Sleep(1);
 				continue;
 			}
 

@@ -1,4 +1,4 @@
-﻿#ifndef _EASY_TCP_SERVER_HPP_
+#ifndef _EASY_TCP_SERVER_HPP_
 #define _EASY_TCP_SERVER_HPP_
 
 #include "Cell.hpp"
@@ -6,6 +6,7 @@
 #include "INetEvent.hpp"
 #include "CellServer.hpp"
 #include "CellNetWork.hpp"
+#include "CellConfig.hpp"
 
 #include <vector>
 #include <map>
@@ -20,7 +21,14 @@ private:
 	std::vector<CellServer*> _cellServers;
 	//每秒消息计时
 	CellTimestamp _tTime;
+	//
 	SOCKET _sock;
+	//客户端发送缓冲区大小
+	int _nSendBuffSize;
+	//客户端接收缓冲区大小
+	int _nRecvBuffSize;
+	//客户端连接上限
+	int _nMaxClient;
 protected:
 	//recv计数
 	std::atomic_int _recvCount;
@@ -34,6 +42,9 @@ public:
 		_recvCount = 0;
 		_clientCount = 0;
 		_msgCount = 0;
+		_nSendBuffSize = CellConfig::Instance().getInt("nSendBuffSize", SEND_BUFF_SIZE);
+		_nRecvBuffSize = CellConfig::Instance().getInt("nRecvBuffSize", RECV_BUFF_SIZE);
+		_nMaxClient = CellConfig::Instance().getInt("nMaxClient", FD_SETSIZE);
 	}
 
 	virtual ~EasyTcpServer() {
@@ -120,12 +131,27 @@ public:
 		cSock = accept(_sock, (sockaddr*)&clientAddr, (socklen_t*)&nAddrLen);
 #endif
 		if (INVALID_SOCKET == cSock) {
-			CellLog::Info("error invalid SOCKET sock[%d]...\n", (int)_sock);
+			#ifdef _WIN32
+				CellLog_Error("invalid SOCKET sock[%d]...\n", (int)_sock);
+			#else
+				CellLog_Error("invalid SOCKET sock[%d]...errno<%d> errMsg<%s>\n", (int)_sock, errno, strerror(errno));
+			#endif
 		}
 		else {
-			//将新客户端分配给客户数量最少的cellServer
-			addClientToCellServer(new CellClient(cSock));
-			//获取ID地址 inet_ntoa(clientAddr.sin_addr)
+			if (_clientCount < _nMaxClient) {
+				//将新客户端分配给客户数量最少的cellServer
+				addClientToCellServer(new CellClient(cSock, _nSendBuffSize, _nRecvBuffSize));
+				//获取ID地址 inet_ntoa(clientAddr.sin_addr)
+			}
+			else {
+				//在这里可以获得连接的IP地址，反馈消息
+#ifdef _WIN32
+				closesocket(cSock);
+#else
+				close(cSock);
+#endif
+				CellLog_Waring("Accept to nMaxClient\n");
+			}
 		}
 
 		return cSock;
@@ -184,7 +210,7 @@ public:
 	void time4msg() {
 		auto t1 = _tTime.getElapsedSecond();
 		if (t1 >= 1.0) {
-			CellLog::Info("thread<%d>, time<%lf>, sock<%d>, clients<%d>, recv<%d>, msg<%d>\n", (int)_cellServers.size(), t1, _sock, (int)_clientCount, int(_recvCount / t1), int(_msgCount / t1));
+			CellLog::Info("thread<%d>, time<%lf>, sock<%d>, clients<%d>, recv<%d>, msg<%d>\n", (int)_cellServers.size(), t1, _sock, (int)_clientCount, int(_recvCount), int(_msgCount));
 			_recvCount = 0;
 			_msgCount = 0;
 			_tTime.update();

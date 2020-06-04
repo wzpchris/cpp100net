@@ -1,4 +1,4 @@
-﻿#include "EasyTcpClient.hpp"
+#include "EasyTcpClient.hpp"
 #include "CellStream.hpp"
 #include "CellMsgStream.hpp"
 #include <iostream>
@@ -30,17 +30,17 @@ public:
 			auto n8 = r.readArray(data, 10);
 
 			//netmsg_LoginR *loginret = (netmsg_LoginR*)header;
-			/*CellLog::Info("recv server CMD_LOGIN_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
+			/*CellLog_Info("recv server CMD_LOGIN_RESULT msg: [len=%d, cmd=%d, result=%d]\n",
 				loginret->dataLength, loginret->cmd, loginret->result);*/
 		}
 		break;
 		case CMD_ERROR:
 		{
-			CellLog::Info("recv error msg len=%d...\n", header->dataLength);
+			CellLog_Info("recv error msg len=%d...\n", header->dataLength);
 		}
 		break;
 		default: {
-			CellLog::Info("recv unkown msglen=%d...\n", header->dataLength);
+			CellLog_Info("recv unkown msglen=%d...\n", header->dataLength);
 		}
 		};
 	}

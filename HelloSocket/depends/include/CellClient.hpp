@@ -13,7 +13,18 @@
 class CellClient {
 public:
 	int id = -1;
+	//所属serverid
 	int serverId = -1;
+
+	/// <summary>
+	/// 用于调试的成员变量
+	/// </summary>
+	//测试接收发逻辑用
+	//用于server检测接收到的消息ID是否连续
+	int nRecvMsgID = 1;
+	// 测试接收发逻辑用
+	//用于client检测接收到的消息ID是否连续
+	int nSendMsgID = 1;
 public:
 	CellClient(SOCKET sockfd = INVALID_SOCKET, int sendSize = SEND_BUFF_SIZE, int recvSize = RECV_BUFF_SIZE) :
 		_sendBuff(sendSize),

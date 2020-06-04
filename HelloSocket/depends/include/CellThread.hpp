@@ -75,6 +75,7 @@ protected:
 		}
 
 		_sem.wakeup();
+		_isRun = false;
 	}
 private:
 	EventCall _onCreate;

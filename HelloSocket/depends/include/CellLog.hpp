@@ -45,7 +45,7 @@ public:
 		return sLog;
 	}
 
-	void setLogPath(const char* logName, const char* mode) {
+	void setLogPath(const char* logName, const char* mode, bool hasDate) {
 		if (_logFile) {
 			Info("CellLog::setLogPath _logFile != nullptr\n");
 			fclose(_logFile);
@@ -53,14 +53,22 @@ public:
 		}
 		//静态变量
 		static char logPath[256] = {};
-		auto t = std::chrono::system_clock::now();
-		auto tNow = std::chrono::system_clock::to_time_t(t);
-		std::tm* now = std::localtime(&tNow);
-		sprintf(logPath, "%s.%04d-%02d-%02d",
-			logName,
-			now->tm_year + 1900,
-			now->tm_mon + 1,
-			now->tm_mday);
+		if (hasDate) {
+			auto t = std::chrono::system_clock::now();
+			auto tNow = std::chrono::system_clock::to_time_t(t);
+			std::tm* now = std::localtime(&tNow);
+			sprintf(logPath, "%s.%04d-%02d-%02d_%02d-%02d-%02d",
+				logName,
+				now->tm_year + 1900,
+				now->tm_mon + 1,
+				now->tm_mday,
+				now->tm_hour,
+				now->tm_min,
+				now->tm_sec);
+		}
+		else {
+			sprintf(logPath, "%s", logName);
+		}
 
 		_logFile = fopen(logPath, mode);
 		if (_logFile) {

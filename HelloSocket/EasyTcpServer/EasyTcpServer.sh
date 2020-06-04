@@ -10,6 +10,19 @@ cd `dirname $0`
 
 #./EasyTcpServer $strIP $nPort $nThread $nClient
 
+#修改单个终端
+ulimit -n 
+ulimit -n 10240
+ulimit -n 
+
+##修改系统
+##sudo /etc/security/limits.conf
+##添加两行
+##* soft nofile 65535
+##* hard nofile 65535
+##然后重启计算机
+##root用户 最大只能是1048576
+
 #服务端IP地址
 cmd='strIP=127.0.0.1'
 #服务端端口
@@ -17,8 +30,22 @@ cmd=$cmd' nPort=4567'
 #消息处理线程数量
 cmd=$cmd" nThread=1"
 #客户端连接上限
-cmd="$cmd nClient=2"
+cmd=$cmd' nMaxClient=10000'
+#客户端发送缓冲区大小(字节) 
+cmd=$cmd' nSendBuffSize=20480'
+#客户端接收缓冲区大小(字节)
+cmd=$cmd' nRecvBuffSize=20480'
+#收到消息后将返回应答消息
+cmd=$cmd' -sendback'
+#提示发送缓冲区已写满
+#当出现sendfull提示时，表示当次消息被丢弃
+cmd=$cmd' -sendfull'
+#检查接收到的客户端消息ID是否连续
+cmd=$cmd' -checkMsgID'
+#自定义标志 未使用
+cmd=$cmd' -p'
 
+#启动程序 传入参数
 ./EasyTcpServer $cmd
 
 read -p "...press any key to ecit..." var

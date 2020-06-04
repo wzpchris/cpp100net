@@ -59,84 +59,83 @@ public:
 
 			//如果没有需要处理的客户端，就跳过
 			if (_clients.empty()) {
-				std::chrono::milliseconds t(1);
-				std::this_thread::sleep_for(t);
+				CellThread::Sleep(1);
 				//旧的时间戳
 				_old_time = CellTime::getNowTimeInMilliSec();
 				continue;
 			}
 
 			CheckTime();
-
-			//伯克利 BSD	socket
-			fd_set fdRead;
-			fd_set fdWrite;
-			//fd_set fdExc;
-
-			if (_clients_change) {
-				_clients_change = false;
-
-				FD_ZERO(&fdRead);
-				//FD_ZERO(&fdExc);
-
-				_maxSock = (_clients.begin()->second)->sockfd();
-				for (auto iter : _clients) {
-					FD_SET(iter.first, &fdRead);
-					if (iter.first > _maxSock) {
-						_maxSock = iter.first;
-					}
-				}
-				memcpy(&_fdRead_bak, &fdRead, sizeof(fd_set));
-			}
-			else {
-				memcpy(&fdRead, &_fdRead_bak, sizeof(fd_set));
-			}
-
-			bool bNeedWrite = false;
-			FD_ZERO(&fdWrite);
-			for (auto iter : _clients) {
-				//需要写数据的客户端，才加入fd_set检测是否可写
-				if (iter.second->needWrite()) {
-					FD_SET(iter.first, &fdWrite);
-					bNeedWrite = true;
-				}
-			}
-
-			//memcpy(&fdWrite, &_fdRead_bak, sizeof(fd_set));
-			//memcpy(&fdExc, &_fdRead_bak, sizeof(fd_set));
-
-			//nfds是一个整数值，是指fd_set集合中所有描述符(socket)的范围，而不是数量
-			//即是所有文件描述符最大值+1，在windows中这个参数可以写0
-			timeval t = { 0, 1 }; //这是是非阻塞，将导致单核CPU达到100%
-			//timeval t = { 1, 0 };
-			int ret = 0;
-			if (bNeedWrite) {
-				ret = select(_maxSock + 1, &fdRead, &fdWrite, nullptr, &t);
-			}
-			else {
-				ret = select(_maxSock + 1, &fdRead, nullptr, nullptr, &t);
-			}
-
-			if (ret < 0) {
-				CellLog::Info("CellServer.OnRun select error exit\n");
+			if (!DoSelect()) {
 				pThread->Exit();
 				break;
 			}
-			else if (ret == 0) {
-				continue;
-			}
-
-			ReadData(fdRead);
-			WriteData(fdWrite);
-			//有问题的是作为可写的,直接剔除
-			//WriteData(fdExc);
-			////CellLog::Info("CellServer.OnRun.select id[%d]: fdRead=%d, fdWrite=%d, fdExc=%d\n", _id, fdRead.fd_count, fdWrite.fd_count, fdExc.fd_count);
-			//if (fdExc.fd_count > 0) {
-			//	CellLog::Info("#### CellServer.OnRun.select id[%d]: fdExc=%d\n", _id, fdExc.fd_count);
-			//}
+			DoMsg();
 		}
 
 		CellLog::Info("CellServer.OnRun id[%d] exit\n", _id);
+	}
+
+	bool DoSelect() {
+		//伯克利 BSD	socket
+		fd_set fdRead;
+		fd_set fdWrite;
+		//fd_set fdExc;
+
+		if (_clients_change) {
+			_clients_change = false;
+
+			FD_ZERO(&fdRead);
+			//FD_ZERO(&fdExc);
+
+			_maxSock = (_clients.begin()->second)->sockfd();
+			for (auto iter : _clients) {
+				FD_SET(iter.first, &fdRead);
+				if (iter.first > _maxSock) {
+					_maxSock = iter.first;
+				}
+			}
+			memcpy(&_fdRead_bak, &fdRead, sizeof(fd_set));
+		}
+		else {
+			memcpy(&fdRead, &_fdRead_bak, sizeof(fd_set));
+		}
+
+		bool bNeedWrite = false;
+		FD_ZERO(&fdWrite);
+		for (auto iter : _clients) {
+			//需要写数据的客户端，才加入fd_set检测是否可写
+			if (iter.second->needWrite()) {
+				FD_SET(iter.first, &fdWrite);
+				bNeedWrite = true;
+			}
+		}
+
+		//nfds是一个整数值，是指fd_set集合中所有描述符(socket)的范围，而不是数量
+		//即是所有文件描述符最大值+1，在windows中这个参数可以写0
+		timeval t = { 0, 1 }; //这是是非阻塞，将导致单核CPU达到100%
+		//timeval t = { 1, 0 };
+		int ret = 0;
+		if (bNeedWrite) {
+			ret = select(_maxSock + 1, &fdRead, &fdWrite, nullptr, &t);
+		}
+		else {
+			ret = select(_maxSock + 1, &fdRead, nullptr, nullptr, &t);
+		}
+
+		if (ret < 0) {
+			CellLog_Error("CellServer.OnRun select error exit\n");
+			return false;
+		}
+		else if (ret == 0) {
+			return true;
+		}
+
+		ReadData(fdRead);
+		WriteData(fdWrite);
+		//异常有问题的是作为可写的,直接剔除
+		//WriteData(fdExc);
+		return true;
 	}
 
 	void CheckTime() {
@@ -176,7 +175,7 @@ public:
 		for (int n = 0; n < fdRead.fd_count; ++n) {
 			auto iter = _clients.find(fdRead.fd_array[n]);
 			if (iter != _clients.end()) {
-				if (-1 == RecvData(iter->second)) {
+				if (SOCKET_ERROR == RecvData(iter->second)) {
 					OnClientLeave(iter->second);
 					_clients.erase(iter);
 				}
@@ -185,7 +184,7 @@ public:
 #else	
 		for (auto iter = _clients.begin(); iter != _clients.end();) {
 			if (FD_ISSET(iter->first, &fdRead)) {
-				if (-1 == iter->second->SendDataReal()) {
+				if (SOCKET_ERROR == iter->second->SendDataReal()) {
 					OnClientLeave(iter->second);
 					iter = _clients.erase(iter);
 					continue;
@@ -202,7 +201,7 @@ public:
 		for (int n = 0; n < fdWrite.fd_count; ++n) {
 			auto iter = _clients.find(fdWrite.fd_array[n]);
 			if (iter != _clients.end()) {
-				if (-1 == iter->second->SendDataReal()) {
+				if (SOCKET_ERROR == iter->second->SendDataReal()) {
 					OnClientLeave(iter->second);
 					_clients.erase(iter);
 				}
@@ -211,7 +210,7 @@ public:
 #else	
 		for (auto iter = _clients.begin(); iter != _clients.end();) {
 			if (iter->second->needWrite() && FD_ISSET(iter->first, &fdWrite)) {
-				if (-1 == iter->second->SendDataReal()) {
+				if (SOCKET_ERROR == iter->second->SendDataReal()) {
 					OnClientLeave(iter->second);
 					iter = _clients.erase(iter);
 					continue;
@@ -223,25 +222,29 @@ public:
 #endif
 	}
 
-	//缓冲区处理粘包与分包问题
-	//char _szRecv[RECV_BUFF_SIZE] = {};
+	void DoMsg() {
+		CellClient* pClient = nullptr;
+		for (auto iter : _clients) {
+			pClient = iter.second;
+			//循环 判断是否有消息需要处理
+			while (pClient->hasMsg()) {
+				//处理网络消息
+				OnNetMsg(pClient, pClient->front_msg());
+				//移除 消息队列(缓冲区) 最前的一条数据
+				pClient->pop_front_msg();
+			}
+		}
+	}
+
 	//接收数据 处理粘包 拆分包
 	int RecvData(CellClient* pClient) {
 		//接收数据
 		int nLen = pClient->RecvData();
 		if (nLen <= 0) {
-			return -1;
+			return SOCKET_ERROR;
 		}
 		//触发 接收到网络数据事件
 		_pNetEvent->OnNetRecv(pClient);
-
-		//循环 判断是否有消息需要处理
-		while (pClient->hasMsg()) {
-			//处理网络消息
-			OnNetMsg(pClient, pClient->front_msg());
-			//移除 消息队列(缓冲区) 最前的一条数据
-			pClient->pop_front_msg();
-		}
 		return 0;
 	}
 	//响应网络消息

@@ -30,7 +30,8 @@ struct netmsg_Login : public netmsg_DataHeader {
 	}
 	char UserName[32];
 	char PassWord[32];
-	char data[32];
+	char data[28];
+	int msgID;
 };
 
 struct netmsg_LoginR :public netmsg_DataHeader {
@@ -40,7 +41,8 @@ struct netmsg_LoginR :public netmsg_DataHeader {
 		result = 1;
 	}
 	int result;
-	char data[92];
+	char data[88];
+	int msgID;
 };
 
 struct netmsg_LogOut :public netmsg_DataHeader {

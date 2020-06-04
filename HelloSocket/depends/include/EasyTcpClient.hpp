@@ -18,33 +18,31 @@ public:
 	}
 
 	//初始化socket
-	void InitSocket(int sendSize = SEND_BUFF_SIZE, int recvSize = RECV_BUFF_SIZE) {
+	SOCKET InitSocket(int sendSize = SEND_BUFF_SIZE, int recvSize = RECV_BUFF_SIZE) {
 		CellNetWork::Init();
 		//1.建立一个socket
 		if (_pClient) {
-			//CellLog::Info("close before socket...\n", _pClient->sockfd());
+			CellLog_Waring("close before socket...\n", _pClient->sockfd());
 			Close();
 		}
 
 		SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (INVALID_SOCKET == sock) {
-			CellLog::Info("socket error ...\n");
+			CellLog_Error("socket error ...\n");
 		}
 		else {
 			//CellLog::Info("socket success sock=%d...\n", _sock);
 			_pClient = new CellClient(sock, sendSize, recvSize);
 		}
+		return sock;
 	}
 
-	/// <summary>
-	/// //连接服务器
-	/// </summary>
-	/// <param name="ip"></param>
-	/// <param name="port"></param>
-	/// <returns></returns>
+	//连接服务器
 	int Connect(const char* ip, short port) {
 		if (_pClient == nullptr) {
-			InitSocket();
+			if (INVALID_SOCKET == InitSocket()) {
+				return SOCKET_ERROR;
+			}
 		}
 		//2.链接服务器connect
 		sockaddr_in _sin = {};
@@ -77,7 +75,7 @@ public:
 	}
 
 	//处理网络消息
-	bool OnRun() {
+	bool OnRun(int microseconds = 1) {
 		if (IsRun()) {
 			SOCKET _sock = _pClient->sockfd();
 			fd_set fdRead;
@@ -87,7 +85,7 @@ public:
 			FD_SET(_sock, &fdRead);
 
 			int ret = 0;
-			timeval t = { 0, 1 };
+			timeval t = { 0, microseconds };
 			if (_pClient->needWrite()) {
 				FD_SET(_sock, &fdWrite);
 				ret = select(_sock + 1, &fdRead, &fdWrite, nullptr, &t);
@@ -154,11 +152,8 @@ public:
 	/// <param name="header"></param>
 	virtual void OnNetMsg(netmsg_DataHeader* header) = 0;
 
-	/// <summary>
-	/// //发送数据
-	/// </summary>
-	/// <param name="header"></param>
-	/// <returns></returns>
+	
+	//发送数据
 	int SendData(netmsg_DataHeader* header) {
 		if (IsRun()) {
 			return _pClient->SendData(header);
