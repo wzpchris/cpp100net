@@ -5,6 +5,7 @@
 #include "CellLog.hpp"
 #include "CellNetWork.hpp"
 #include "CellClient.hpp"
+#include "CellFDSet.hpp"
 
 class EasyTcpClient
 {
@@ -78,20 +79,19 @@ public:
 	bool OnRun(int microseconds = 1) {
 		if (IsRun()) {
 			SOCKET _sock = _pClient->sockfd();
-			fd_set fdRead;
-			fd_set fdWrite;
-			FD_ZERO(&fdRead);
-			FD_ZERO(&fdWrite);
-			FD_SET(_sock, &fdRead);
+			
+			_fdRead.zero();
+			_fdWrite.zero();
+			_fdRead.add(_sock);
 
 			int ret = 0;
 			timeval t = { 0, microseconds };
 			if (_pClient->needWrite()) {
-				FD_SET(_sock, &fdWrite);
-				ret = select(_sock + 1, &fdRead, &fdWrite, nullptr, &t);
+				_fdWrite.add(_sock);
+				ret = select(_sock + 1, _fdRead.fdset(), _fdWrite.fdset(), nullptr, &t);
 			}
 			else {
-				ret = select(_sock + 1, &fdRead, nullptr, nullptr, &t);
+				ret = select(_sock + 1, _fdRead.fdset() , nullptr, nullptr, &t);
 			}
 
 			if (ret < 0) {
@@ -100,7 +100,7 @@ public:
 				return false;
 			}
 
-			if (FD_ISSET(_sock, &fdRead)) {
+			if (_fdRead.has(_sock)) {
 				if (SOCKET_ERROR == RecvData(_sock)) {
 					CellLog::Info("server no msg socket[%d]\n", _sock);
 					Close();
@@ -108,7 +108,7 @@ public:
 				}
 			}
 
-			if (FD_ISSET(_sock, &fdWrite)) {
+			if (_fdWrite.has(_sock)) {
 				if (SOCKET_ERROR == _pClient->SendDataReal()) {
 					CellLog::Info("server no msg socket[%d]\n", _sock);
 					Close();
@@ -170,6 +170,9 @@ public:
 protected:
 	CellClient* _pClient = nullptr;
 	bool _isConnect = false;
+
+	CellFDSet _fdRead;
+	CellFDSet _fdWrite;
 };
 
 #endif 

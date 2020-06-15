@@ -32,7 +32,25 @@ public:
 	static void Init() {
 		static CellNetWork obj;
 	}
-private:
+
+	static int make_nonblocking(SOCKET fd) {
+#ifndef _WIN32
+		int flags = fcntl(fd, F_GETFL, 0);
+		fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+#endif
+
+		return 0;
+	}
+
+	static int make_reuseaddr(SOCKET fd) {
+		int flag = 1;
+		if (SOCKET_ERROR == setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&flag, sizeof(flag))) {
+			CellLog_Waring("setsockopt sock<%d> SO_REUSEADDR fail.\n", (int)fd);
+			return SOCKET_ERROR;
+		}
+
+		return 0;
+	}
 
 };
 #endif // !_CELL_NET_WORK_HPP_

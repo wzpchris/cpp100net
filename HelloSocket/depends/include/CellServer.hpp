@@ -6,6 +6,7 @@
 #include "CellClient.hpp"
 #include "CellSemaphore.hpp"
 #include "CellLog.hpp"
+#include "CellFDSet.hpp"
 
 #include <vector>
 #include <map>
@@ -76,37 +77,34 @@ public:
 		CellLog::Info("CellServer.OnRun id[%d] exit\n", _id);
 	}
 
-	bool DoSelect() {
-		//伯克利 BSD	socket
-		fd_set fdRead;
-		fd_set fdWrite;
+	bool DoSelect() {	
 		//fd_set fdExc;
 
 		if (_clients_change) {
 			_clients_change = false;
 
-			FD_ZERO(&fdRead);
+			_fdRead.zero();
 			//FD_ZERO(&fdExc);
 
 			_maxSock = (_clients.begin()->second)->sockfd();
 			for (auto iter : _clients) {
-				FD_SET(iter.first, &fdRead);
+				_fdRead.add(iter.first);
 				if (iter.first > _maxSock) {
 					_maxSock = iter.first;
 				}
 			}
-			memcpy(&_fdRead_bak, &fdRead, sizeof(fd_set));
+			_fdRead_bak.copy(_fdRead);
 		}
 		else {
-			memcpy(&fdRead, &_fdRead_bak, sizeof(fd_set));
+			_fdRead.copy(_fdRead_bak);
 		}
 
 		bool bNeedWrite = false;
-		FD_ZERO(&fdWrite);
+		_fdWrite.zero();
 		for (auto iter : _clients) {
 			//需要写数据的客户端，才加入fd_set检测是否可写
 			if (iter.second->needWrite()) {
-				FD_SET(iter.first, &fdWrite);
+				_fdWrite.add(iter.first);
 				bNeedWrite = true;
 			}
 		}
@@ -117,22 +115,22 @@ public:
 		//timeval t = { 1, 0 };
 		int ret = 0;
 		if (bNeedWrite) {
-			ret = select(_maxSock + 1, &fdRead, &fdWrite, nullptr, &t);
+			ret = select(_maxSock + 1, _fdRead.fdset(), _fdWrite.fdset(), nullptr, &t);
 		}
 		else {
-			ret = select(_maxSock + 1, &fdRead, nullptr, nullptr, &t);
+			ret = select(_maxSock + 1, _fdRead.fdset(), nullptr, nullptr, &t);
 		}
 
 		if (ret < 0) {
-			CellLog_Error("CellServer.OnRun select error exit\n");
+			CellLog_Error("CellServer.DoSelect select error exit id<%d> errno<%d> errmsg<%s>\n", _id, errno, strerror(errno));
 			return false;
 		}
 		else if (ret == 0) {
 			return true;
 		}
 
-		ReadData(fdRead);
-		WriteData(fdWrite);
+		ReadData();
+		WriteData();
 		//异常有问题的是作为可写的,直接剔除
 		//WriteData(fdExc);
 		return true;
@@ -170,10 +168,11 @@ public:
 		delete pClient;
 	}
 
-	void ReadData(fd_set& fdRead) {
+	void ReadData() {
 #ifdef _WIN32
-		for (int n = 0; n < fdRead.fd_count; ++n) {
-			auto iter = _clients.find(fdRead.fd_array[n]);
+		auto pfdset = _fdRead.fdset();
+		for (int n = 0; n < pfdset->fd_count; ++n) {
+			auto iter = _clients.find(pfdset->fd_array[n]);
 			if (iter != _clients.end()) {
 				if (SOCKET_ERROR == RecvData(iter->second)) {
 					OnClientLeave(iter->second);
@@ -183,7 +182,7 @@ public:
 		}
 #else	
 		for (auto iter = _clients.begin(); iter != _clients.end();) {
-			if (FD_ISSET(iter->first, &fdRead)) {
+			if (_fdRead.has(iter->first)) {
 				if (SOCKET_ERROR == iter->second->SendDataReal()) {
 					OnClientLeave(iter->second);
 					iter = _clients.erase(iter);
@@ -196,10 +195,11 @@ public:
 #endif
 	}
 
-	void WriteData(fd_set& fdWrite) {
+	void WriteData() {
 #ifdef _WIN32
-		for (int n = 0; n < fdWrite.fd_count; ++n) {
-			auto iter = _clients.find(fdWrite.fd_array[n]);
+		auto pfdset = _fdWrite.fdset();
+		for (int n = 0; n < pfdset->fd_count; ++n) {
+			auto iter = _clients.find(pfdset->fd_array[n]);
 			if (iter != _clients.end()) {
 				if (SOCKET_ERROR == iter->second->SendDataReal()) {
 					OnClientLeave(iter->second);
@@ -209,7 +209,7 @@ public:
 		}
 #else	
 		for (auto iter = _clients.begin(); iter != _clients.end();) {
-			if (iter->second->needWrite() && FD_ISSET(iter->first, &fdWrite)) {
+			if (iter->second->needWrite() && _fdWrite.has(iter->first)) {
 				if (SOCKET_ERROR == iter->second->SendDataReal()) {
 					OnClientLeave(iter->second);
 					iter = _clients.erase(iter);
@@ -306,8 +306,10 @@ private: //字节大的往前，小的靠后，主要是为了字节对齐
 	//
 	CellTaskServer _taskServer;
 
+	CellFDSet _fdRead;
+	CellFDSet _fdWrite;
 	//备份客户socket fd_set
-	fd_set _fdRead_bak;
+	CellFDSet _fdRead_bak;
 
 	SOCKET _maxSock;
 
@@ -315,7 +317,6 @@ private: //字节大的往前，小的靠后，主要是为了字节对齐
 	time_t _old_time = CellTime::getNowTimeInMilliSec();
 	//
 	CellThread _thread;
-
 	int _id = -1;
 	//客户列表是否有变化
 	bool _clients_change;

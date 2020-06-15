@@ -11,9 +11,14 @@ cd `dirname $0`
 #./EasyTcpServer $strIP $nPort $nThread $nClient
 
 #修改单个终端
-ulimit -n 
-ulimit -n 10240
-ulimit -n 
+nOpenFile=`ulimit -n`
+if [ $nOpenFile -lt 10240 ];then
+	echo "重置当前进程可以打开的最大文件数"
+	ulimit -n 10240
+fi
+
+echo "当前进程可以打开的最大文件数"
+ulimit -n
 
 ##修改系统
 ##sudo /etc/security/limits.conf
