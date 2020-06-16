@@ -170,10 +170,12 @@ public:
 		pMinServer->addClient(pClient);
 	}
 
+	template<class ServerT>
 	void Start(int nCellServer) {
 
 		for (int n = 0; n < nCellServer; n++) {
-			auto ser = new CellServer(n + 1);
+			auto ser = new ServerT();
+			ser->setId(n + 1);
 			_cellServers.push_back(ser);
 			//注册网络事件接收对象
 			ser->setEventObj(this);
@@ -238,34 +240,11 @@ public:
 		_recvCount++;
 	}
 
-private:
+protected:
 	//处理网络消息
-	void OnRun(CellThread* pThread) {
-		//伯克利 BSD	socket
-		CellFDSet fdRead;
-		while (pThread->isRun()) {
-			time4msg();
-			//清理集合
-			fdRead.zero();
-			//将描述符加入集合
-			fdRead.add(_sock);
-			//nfds是一个整数值，是指fd_set集合中所有描述符(socket)的范围，而不是数量
-			//即是所有文件描述符最大值+1，在windows中这个参数可以写0
-			//timeval t = { 0, 0 }; //这是是非阻塞，将导致单核CPU达到100%
-			timeval t = { 0, 1 };
-			int ret = select(_sock + 1, fdRead.fdset(), nullptr, nullptr, &t);
-			if (ret < 0) {
-				CellLog::Info("EasyTcpServer.OnRun select error exit.\n");
-				pThread->Exit();
-				break;
-			}
-
-			if (fdRead.has(_sock)) {
-				//这里可以暂时不需要了
-				//fdRead.del(_sock);
-				Accpet();
-			}
-		}
+	virtual void OnRun(CellThread* pThread) = 0;
+	SOCKET sockfd() {
+		return _sock;
 	}
 };
 

@@ -1,6 +1,6 @@
 //#include "Alloctor.h"
 #include "CellLog.hpp"
-#include "EasyTcpServer.hpp"
+#include "EasySelectServer.hpp"
 #include "CellMsgStream.hpp"
 #include "CellConfig.hpp"
 
@@ -12,7 +12,7 @@
 //	
 //}
 
-class MyServer :public EasyTcpServer
+class MyServer :public EasySelectServer
 {
 public:
 	MyServer() {

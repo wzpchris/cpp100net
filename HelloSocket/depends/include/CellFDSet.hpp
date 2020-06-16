@@ -12,7 +12,7 @@ public:
 #ifdef _WIN32 
 		_nfdSize = sizeof(u_int) + (sizeof(SOCKET) * nSocketNum);
 #else
-		_nfdSize = (nSocketNum / (8 * sizeof(char));
+		_nfdSize = (nSocketNum / (8 * sizeof(char)));
 #endif
 		_pfdset = (fd_set*)new char[_nfdSize];
 		memset(_pfdset, 0, _nfdSize);
