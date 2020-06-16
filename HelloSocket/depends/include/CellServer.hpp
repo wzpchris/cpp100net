@@ -78,7 +78,7 @@ public:
 	}
 
 	virtual bool DoNetEvent() {
-
+		return false;
 	}
 
 	void CheckTime() {

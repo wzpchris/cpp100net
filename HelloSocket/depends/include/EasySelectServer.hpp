@@ -26,6 +26,10 @@ protected:
 			timeval t = { 0, 1 };
 			int ret = select(sockfd() + 1, fdRead.fdset(), nullptr, nullptr, &t);
 			if (ret < 0) {
+				if (errno == EINTR) {
+					//CellLog_PError("EasySelectServer.OnRun select error exit.\n");
+					continue;
+				}
 				CellLog::Info("EasySelectServer.OnRun select error exit.\n");
 				pThread->Exit();
 				break;

@@ -51,7 +51,11 @@ public:
 		}
 
 		if (ret < 0) {
-			CellLog_Error("CellSelectServer.DoSelect select error exit id<%d> errno<%d> errmsg<%s>\n", _id, errno, strerror(errno));
+			if (errno == EINTR) {
+				//CellLog_PError("CellSelectServer.DoSelect select error exit.\n");
+				return true;
+			}
+			CellLog_PError("CellSelectServer.DoSelect select error exit id<%d>\n", _id);
 			return false;
 		}
 		else if (ret == 0) {

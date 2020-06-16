@@ -2,6 +2,7 @@
 #define _CELL_NET_WORK_HPP_
 
 #include "Cell.hpp"
+#include "CellLog.hpp"
 
 class CellNetWork {
 private:
@@ -34,11 +35,30 @@ public:
 	}
 
 	static int make_nonblocking(SOCKET fd) {
-#ifndef _WIN32
-		int flags = fcntl(fd, F_GETFL, 0);
-		fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-#endif
+#ifdef _WIN32
+		{
+			unsigned long nonblocking = 1;
+			if (ioctlsocket(fd, FIONBIO, &nonblocking) == SOCKET_ERROR) {
+				CellLog_Waring("fcntl(%d, F_GETFL)", (int)fd);
+				return -1;
+			}
+		}
+#else 
+		{
+			int flags;
+			if ((flags = fcntl(fd, F_GETFL, NULL)) < 0) {
+				CellLog_Waring("fcntl(%d, F_GETFL)", fd);
+				return -1;
+			}
 
+			if (!(flags & O_NONBLOCK)) {
+				if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+					CellLog_Waring("fcntl(%d, F_SETFL)", fd);
+					return -1;
+				}
+			}
+		}
+#endif
 		return 0;
 	}
 
@@ -52,5 +72,18 @@ public:
 		return 0;
 	}
 
+	static int destroySocket(SOCKET sockfd) {
+#ifdef _WIN32
+		//关闭套接字closesocket
+		int ret = closesocket(sockfd);
+#else 
+		int ret = close(sockfd);
+#endif
+		if (ret < 0) {
+			CellLog_PError("destroy sockfd<%d>", (int)sockfd);
+		}
+
+		return 0;
+	}
 };
 #endif // !_CELL_NET_WORK_HPP_

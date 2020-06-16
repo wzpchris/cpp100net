@@ -25,6 +25,7 @@ class CellLog {
 #define CellLog_Info(...) CellLog::Info(__VA_ARGS__)
 #define CellLog_Waring(...) CellLog::Waring(__VA_ARGS__)
 #define CellLog_Error(...) CellLog::Error(__VA_ARGS__)
+#define CellLog_PError(...) CellLog::PError(__VA_ARGS__)
 
 private:
 	CellLog() {
@@ -77,6 +78,16 @@ public:
 		else {
 			Info("CellLog::setLogPath failed,<%s:%s>\n", logPath, mode);
 		}
+	}
+
+	static void PError(const char* pStr) {
+		PError("%s", pStr);
+	}
+
+	template<typename ...Args>
+	static void PError(const char* pFormat, Args ... args) {
+		Echo("PError", pFormat, args...);
+		Echo("PError", "errno<%d>, errmsg<%s>\n", errno, strerror(errno));
 	}
 
 	static void Error(const char* pStr) {

@@ -5,6 +5,7 @@
 #include "Cell.hpp"
 #include "CellLog.hpp"
 #include "CellClient.hpp"
+#include "CellNetWork.hpp"
 #include <sys/epoll.h>
 #define EPOLL_ERROR (-1)
 
@@ -45,7 +46,7 @@ public:
         }
 
         if (_epfd > 0) {
-            close(_epfd);
+            CellNetWork::destroySocket(_epfd);
             _epfd = -1;
         }
     }
@@ -123,6 +124,9 @@ public:
         //  t>0:等待指定数值毫秒后返回
         int ret = epoll_wait(_epfd, _pEvents, _nMaxEvents, timeout);
         if (EPOLL_ERROR == ret) {
+            if (errno == EINTR) {
+                return 0;
+            }
             CellLog_Error("epoll_wait ret %d, errno<%d>, errmsg<%s>\n", ret, errno, strerror(errno));
         }
         return ret;

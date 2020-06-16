@@ -147,11 +147,7 @@ public:
 			}
 			else {
 				//在这里可以获得连接的IP地址，反馈消息
-#ifdef _WIN32
-				closesocket(cSock);
-#else
-				close(cSock);
-#endif
+				CellNetWork::destroySocket(cSock);
 				CellLog_Waring("Accept to nMaxClient\n");
 			}
 		}
@@ -199,12 +195,7 @@ public:
 				delete cs;
 			}
 			_cellServers.clear();
-#ifdef _WIN32
-			//关闭套接字closesocket
-			closesocket(_sock);
-#else 
-			close(_sock);
-#endif
+			CellNetWork::destroySocket(_sock);
 			_sock = INVALID_SOCKET;
 			CellLog::Info("EasyTcpServer.Close end\n");
 		}
