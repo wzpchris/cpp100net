@@ -10,6 +10,10 @@ public:
 	CellEpollServer() {
 		_ep.create(10240);
 	}
+	~CellEpollServer(){
+		_ep.destroy();	
+	}
+
 	virtual bool DoNetEvent() {
 
 		for (auto iter : _clients) {

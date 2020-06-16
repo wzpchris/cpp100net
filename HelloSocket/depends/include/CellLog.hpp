@@ -86,8 +86,44 @@ public:
 
 	template<typename ...Args>
 	static void PError(const char* pFormat, Args ... args) {
-		Echo("PError", pFormat, args...);
-		Echo("PError", "errno<%d>, errmsg<%s>\n", errno, strerror(errno));
+#ifdef _WIN32
+		auto errCode = GetLastError();
+		
+		/*char* text = nullptr;
+		FormatMessageA(
+			FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+			NULL,
+			errCode,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPSTR)&text,0,NULL);
+		Echo("PError", "errno<%d>, errmsg<%s>\n", errCode, text);
+		CellLog* pLog = &Instance();
+		pLog->_taskServer.addTask([=]() {
+			LocalFree(text);
+		});
+		*/
+
+		CellLog* pLog = &Instance();
+		pLog->_taskServer.addTask([=]() {
+			char text[256] = {};
+			FormatMessageA(
+				FORMAT_MESSAGE_FROM_SYSTEM,
+				NULL,
+				errCode,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				(LPSTR)&text, 256, NULL
+			);
+			EchoReal("PError", pFormat, args...);
+			EchoReal("PError", "errno:%d, errmsg:%s", errCode, text);
+		});
+#else
+		auto errCode = errno;
+		CellLog* pLog = &Instance();
+		pLog->_taskServer.addTask([=]() {
+			Echo("PError", pFormat, args...);
+			Echo("PError", "errno:%d, errmsg:%s", errCode, strerror(errCode));
+		});
+#endif
 	}
 
 	static void Error(const char* pStr) {
@@ -130,23 +166,29 @@ public:
 	static void Echo(const char* type, const char* pFormat, Args ... args) {
 		CellLog* pLog = &Instance();
 		pLog->_taskServer.addTask([=]() {
-			if (pLog->_logFile) {
-				auto t = std::chrono::system_clock::now();
-				auto tNow = std::chrono::system_clock::to_time_t(t);
-				fprintf(pLog->_logFile, "%s", type);
-				std::tm* now = std::localtime(&tNow);
-				fprintf(pLog->_logFile, " [%04d-%02d-%02d %02d:%02d:%02d] ",
-					now->tm_year + 1900,
-					now->tm_mon + 1,
-					now->tm_mday,
-					now->tm_hour,
-					now->tm_min,
-					now->tm_sec);
-				fprintf(pLog->_logFile, pFormat, args...);
-				fflush(pLog->_logFile);
-			}
-			printf(pFormat, args...);
-			});
+			EchoReal(type, pFormat, args...);
+		});
+	}
+
+	template<typename ...Args>
+	static void EchoReal(const char* type, const char* pFormat, Args ... args) {
+		CellLog* pLog = &Instance();
+		if (pLog->_logFile) {
+			auto t = std::chrono::system_clock::now();
+			auto tNow = std::chrono::system_clock::to_time_t(t);
+			fprintf(pLog->_logFile, "%s", type);
+			std::tm* now = std::localtime(&tNow);
+			fprintf(pLog->_logFile, " [%04d-%02d-%02d %02d:%02d:%02d] ",
+				now->tm_year + 1900,
+				now->tm_mon + 1,
+				now->tm_mday,
+				now->tm_hour,
+				now->tm_min,
+				now->tm_sec);
+			fprintf(pLog->_logFile, pFormat, args...);
+			fflush(pLog->_logFile);
+		}
+		printf(pFormat, args...);
 	}
 
 private:

@@ -53,5 +53,5 @@ cmd=$cmd' -p'
 #启动程序 传入参数
 ./EasyTcpServer $cmd
 
-read -p "...press any key to ecit..." var
+read -p "...press any key to exit..." var
 
