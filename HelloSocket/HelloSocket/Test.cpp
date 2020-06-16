@@ -1,9 +1,9 @@
-#include "EasyTcpClient.hpp"
+#include "EasySelectClient.hpp"
 #include "CellStream.hpp"
 #include "CellMsgStream.hpp"
 #include <iostream>
 
-class MyClient :public EasyTcpClient {
+class MyClient :public EasySelectClient {
 public:
 	virtual void OnNetMsg(netmsg_DataHeader* header) {
 		//6.处理请求
@@ -48,7 +48,7 @@ public:
 
 
 int main() {
-	CellLog::Instance().setLogPath("socketStream.log", "w");
+	CellLog::Instance().setLogPath("socketStream.log", "w", true);
 	CellWriteStream s;
 	s.setNetCmd(CMD_LOGOUT);
 	s.writeInt8(1);
@@ -66,10 +66,11 @@ int main() {
 
 	MyClient client;
 	client.Connect("127.0.0.1", 4567);
-	client.SendData(s.data(), s.length());
+	
 	while (client.IsRun()) {
 		client.OnRun();
-		CellThread::Sleep(10);
+		client.SendData(s.data(), s.length());
+		CellThread::Sleep(999);
 	}
 	return 0;
 }

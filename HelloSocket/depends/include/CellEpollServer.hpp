@@ -15,7 +15,6 @@ public:
 	}
 
 	virtual bool DoNetEvent() {
-
 		for (auto iter : _clients) {
 			if (iter.second->needWrite()) {
 				_ep.ctl(EPOLL_CTL_MOD, iter.second, EPOLLIN | EPOLLOUT);
