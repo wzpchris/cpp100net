@@ -1,5 +1,6 @@
 #include "CellLog.hpp"
-#include "EasySelectClient.hpp"
+//#include "EasySelectClient.hpp"
+#include "EasyIOCPClient.hpp"
 #include "CellTimestamp.hpp"
 #include "CellConfig.hpp"
 
@@ -26,7 +27,7 @@ int nSendBuffSize = SEND_BUFF_SIZE;
 //客户端接收缓冲区大小
 int nRecvBuffSize = RECV_BUFF_SIZE;
 
-class MyClient :public EasySelectClient {
+class MyClient :public EasyIOCPClient {
 public:
 	MyClient() {
 		_bCheckMsgID = CellConfig::Instance().hasKey("-checkMsgID");

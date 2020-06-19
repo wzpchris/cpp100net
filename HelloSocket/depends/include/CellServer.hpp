@@ -86,21 +86,27 @@ public:
 		auto nowTime = CellTime::getNowTimeInMilliSec();
 		auto dt = nowTime - _old_time;
 		_old_time = nowTime;
+		CellClient* pClient = nullptr;
 		for (auto iter = _clients.begin(); iter != _clients.end();) {
+			pClient = iter->second;
 			//心跳检测
-			if (iter->second->checkHeart(dt)) {
-				if (_pNetEvent) {
-					_pNetEvent->OnNetLeave(iter->second);
+			if (pClient->checkHeart(dt)) {
+#ifdef CELL_USE_IOCP 
+				if (pClient->isPostIoAction()) {
+					pClient->destroy();
 				}
-
-				_clients_change = true;
-				delete iter->second;
+				else {
+					OnClientLeave(pClient);
+				}
+#else
+				OnClientLeave(pClient);
+#endif //CELL_USE_IOCP
 				iter = _clients.erase(iter);
 				continue;
 			}
 
 			////定时发送检测
-			//iter->second->checkSend(dt);
+			//pClient->checkSend(dt);
 			++iter;
 		}
 	}
@@ -115,6 +121,12 @@ public:
 
 	virtual void OnClientJoin(CellClient* pClient) {
 		
+	}
+
+	void OnNetRecv(CellClient* pClient) {
+		if (_pNetEvent) {
+			_pNetEvent->OnNetRecv(pClient);
+		}
 	}
 
 	void DoMsg() {
@@ -139,12 +151,16 @@ public:
 			return SOCKET_ERROR;
 		}
 		//触发 接收到网络数据事件
-		_pNetEvent->OnNetRecv(pClient);
-		return 0;
+		if (_pNetEvent) {
+			_pNetEvent->OnNetRecv(pClient);
+		}
+		return nLen;
 	}
 	//响应网络消息
 	virtual void OnNetMsg(CellClient* pClient, netmsg_DataHeader* header) {
-		_pNetEvent->OnNetMsg(this, pClient, header);
+		if (_pNetEvent) {
+			_pNetEvent->OnNetMsg(this, pClient, header);
+		}
 	}
 
 	void addClient(CellClient* pClient) {

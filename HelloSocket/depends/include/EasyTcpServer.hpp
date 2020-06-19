@@ -24,13 +24,13 @@ private:
 	CellTimestamp _tTime;
 	//
 	SOCKET _sock;
+protected:
 	//客户端发送缓冲区大小
 	int _nSendBuffSize;
 	//客户端接收缓冲区大小
 	int _nRecvBuffSize;
 	//客户端连接上限
 	int _nMaxClient;
-protected:
 	//recv计数
 	std::atomic_int _recvCount;
 	//客户端计数
@@ -134,13 +134,14 @@ public:
 #endif
 		if (INVALID_SOCKET == cSock) {
 			#ifdef _WIN32
-				CellLog_Error("invalid SOCKET sock[%d]...\n", (int)_sock);
+				CellLog_Error("invalid SOCKET sock[%d]...\n", (int)cSock);
 			#else
 				CellLog_Error("invalid SOCKET sock[%d]...errno<%d> errMsg<%s>\n", (int)_sock, errno, strerror(errno));
 			#endif
 		}
 		else {
 			if (_clientCount < _nMaxClient) {
+				CellNetWork::make_reuseaddr(cSock);
 				//将新客户端分配给客户数量最少的cellServer
 				addClientToCellServer(new CellClient(cSock, _nSendBuffSize, _nRecvBuffSize));
 				//获取ID地址 inet_ntoa(clientAddr.sin_addr)

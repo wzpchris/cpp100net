@@ -3,12 +3,17 @@
 
 #include "Cell.hpp"
 
+#ifdef CELL_USE_IOCP
+#include "CellIOCP.hpp"
+#endif
+
 class CellBuffer {
 public:
 	CellBuffer(int nSize = 8192) {
 		_nSize = nSize;
 		_pBuff = new char[_nSize];
 	}
+
 	~CellBuffer() {
 		if (_pBuff) {
 			delete[] _pBuff;
@@ -16,8 +21,16 @@ public:
 		}
 	}
 
-	char* data() {
+	inline char* data() {
 		return _pBuff;
+	}
+
+	inline int buffsize() {
+		return _nSize;
+	}
+
+	inline int dataLen() {
+		return _nLast;
 	}
 
 	bool push(const char* pData, int nLen) {
@@ -121,26 +134,78 @@ public:
 
 		return false;
 	}
-	bool needWrite() {
+
+	inline bool needWrite() {
 		return _nLast > 0;
 	}
+
+#ifdef CELL_USE_IOCP
+	IO_DATA_BASE* makeRecvIoData(SOCKET sockfd) {
+		int nLen = _nSize - _nLast;
+		if (nLen > 0) {
+			_ioData.sockfd = sockfd;
+			_ioData.wsaBuff.len = nLen;
+			_ioData.wsaBuff.buf = _pBuff + _nLast;
+			return &_ioData;
+		}
+
+		return nullptr;
+	}
+
+	IO_DATA_BASE* makeSendIoData(SOCKET sockfd) {
+		if (_nLast > 0) {
+			_ioData.sockfd = sockfd;
+			_ioData.wsaBuff.len = _nLast;
+			_ioData.wsaBuff.buf = _pBuff;
+			return &_ioData;
+		}
+
+		return nullptr;
+	}
+
+	bool read4Iocp(int nRecv) {
+		if (nRecv > 0 && _nSize - _nLast >= nRecv) {
+			_nLast += nRecv;
+			return true;
+		}
+		CellLog_Error("read4Iocp:sockfd<%d> nSize nLast<%d> nRecv<%d>\n",
+			_ioData.sockfd, _nSize, _nLast, nRecv);
+		return false;
+	}
+
+	bool write2Iocp(int nSend) {
+		if (_nLast < nSend) {
+			CellLog_Error("write2Iocp:sockfd<%d> nSize nLast<%d> nSend<%d>\n",
+				_ioData.sockfd, _nSize, _nLast, nSend);
+			return false;
+		}
+
+		if (nSend == _nLast) {
+			//数据尾部位置清零
+			_nLast = 0;
+		}
+		else {
+			//_nLast=2000 实际上可能只发送了 ret=1000
+			_nLast -= nSend;
+			memcpy(_pBuff, _pBuff + nSend, _nLast);
+		}
+		_fullCount = 0;
+		return true;
+	}
+#endif
+
 private:
-	/// <summary>
-	/// 缓冲区
-	/// </summary>
+	// 缓冲区
 	char* _pBuff = nullptr;
-	/// <summary>
-	/// 缓冲区的数据尾部位置，已有数据长度
-	/// </summary>
+	// 缓冲区的数据尾部位置，已有数据长度
 	int _nLast = 0;
-	/// <summary>
-	/// 缓冲区总的空间大小，字节长度
-	/// </summary>
+	// 缓冲区总的空间大小，字节长度
 	int _nSize = 0;
-	/// <summary>
-	/// 缓冲区写满次数计数
-	/// </summary>
+	// 缓冲区写满次数计数
 	int _fullCount = 0;
+#ifdef CELL_USE_IOCP
+	IO_DATA_BASE _ioData = {};
+#endif
 };
 
 #endif // !_CELL_BUFF_HPP_

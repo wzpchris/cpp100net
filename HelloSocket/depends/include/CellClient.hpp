@@ -38,8 +38,13 @@ public:
 		resetDTSend();
 	}
 	~CellClient() {
-		//CellLog::Info("CellClient serverid[%d] id[%d] deconstruct\n", serverId, id);
+		CellLog_Info("CellClient serverid[%d] id[%d] deconstruct\n", serverId, id);
+		destroy();
+	}
+
+	void destroy() {
 		if (SOCKET_ERROR != _sockfd) {
+			CellLog_Info("CellClient::destroy serverid[%d] id[%d] deconstruct\n", serverId, id);
 			CellNetWork::destroySocket(_sockfd);
 			_sockfd = SOCKET_ERROR;
 		}
@@ -119,6 +124,45 @@ public:
 		}
 		return false;
 	}
+#ifdef CELL_USE_IOCP
+	IO_DATA_BASE* makeRecvIoData() {
+		if (_isPostRecv) {
+			return nullptr;
+		}
+
+		_isPostRecv = true;
+		return _recvBuff.makeRecvIoData(_sockfd);
+	}
+	void recv4Iocp(int nRecv) {
+		if (!_isPostRecv) {
+			CellLog_Error("recv4Iocp _isPostRecv is false\n");
+			return;
+		}
+		_isPostRecv = false;
+		_recvBuff.read4Iocp(nRecv);
+	}
+
+	IO_DATA_BASE* makeSendIoData() {
+		if (_isPostSend) {
+			return nullptr;
+		}
+
+		_isPostSend = true;
+		return _sendBuff.makeSendIoData(_sockfd);
+	}
+	void send2Iocp(int nSend) {
+		if (!_isPostSend) {
+			CellLog_Error("send2Iocp _isPostSend is false\n");
+			return;
+		}
+		_isPostSend = false;
+		_sendBuff.write2Iocp(nSend);
+	}
+
+	bool isPostIoAction() {
+		return _isPostRecv || _isPostSend;
+	}
+#endif
 private:
 	SOCKET _sockfd;
 	//消息接收缓冲区
@@ -129,5 +173,9 @@ private:
 	time_t _dtHeart;
 	//上次发送消息数据时间
 	time_t _dtSend;
+#ifdef CELL_USE_IOCP
+	bool _isPostRecv = false;
+	bool _isPostSend = false;
+#endif
 };
 #endif

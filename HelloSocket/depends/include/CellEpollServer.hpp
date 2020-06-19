@@ -27,6 +27,7 @@ public:
 		int ret = _ep.wait(1);
 		if (ret < 0) {
 			CellLog_Error("CellEpollServer.DoNetEvent error exit errno<%d> errmsg<%s>\n", errno, strerror(errno));
+			return false;
 		}else if (ret == 0) {
 			return true;
 		}
