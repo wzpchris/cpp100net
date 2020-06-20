@@ -7,7 +7,6 @@
 #include "CellServer.hpp"
 #include "CellNetWork.hpp"
 #include "CellConfig.hpp"
-#include "CellFDSet.hpp"
 
 #include <vector>
 #include <map>
@@ -34,15 +33,18 @@ protected:
 	//recv计数
 	std::atomic_int _recvCount;
 	//客户端计数
-	std::atomic_int _clientCount;
+	std::atomic_int _clientAccept;
 	//消息计数
 	std::atomic_int _msgCount;
+	//客户端计数
+	std::atomic_int _clientJoin;
 public:
 	EasyTcpServer() {
 		_sock = INVALID_SOCKET;
 		_recvCount = 0;
-		_clientCount = 0;
+		_clientAccept = 0;
 		_msgCount = 0;
+		_clientJoin = 0;
 		_nSendBuffSize = CellConfig::Instance().getInt("nSendBuffSize", SEND_BUFF_SIZE);
 		_nRecvBuffSize = CellConfig::Instance().getInt("nRecvBuffSize", RECV_BUFF_SIZE);
 		_nMaxClient = CellConfig::Instance().getInt("nMaxClient", FD_SETSIZE);
@@ -140,7 +142,8 @@ public:
 			#endif
 		}
 		else {
-			if (_clientCount < _nMaxClient) {
+			if (_clientAccept < _nMaxClient) {
+				_clientAccept++;
 				CellNetWork::make_reuseaddr(cSock);
 				//将新客户端分配给客户数量最少的cellServer
 				addClientToCellServer(new CellClient(cSock, _nSendBuffSize, _nRecvBuffSize));
@@ -173,6 +176,7 @@ public:
 		for (int n = 0; n < nCellServer; n++) {
 			auto ser = new ServerT();
 			ser->setId(n + 1);
+			ser->setClientNum((_nMaxClient / nCellServer) + 1);
 			_cellServers.push_back(ser);
 			//注册网络事件接收对象
 			ser->setEventObj(this);
@@ -206,7 +210,13 @@ public:
 	void time4msg() {
 		auto t1 = _tTime.getElapsedSecond();
 		if (t1 >= 1.0) {
-			CellLog::Info("thread<%d>, time<%lf>, sock<%d>, clients<%d>, recv<%d>, msg<%d>\n", (int)_cellServers.size(), t1, _sock, (int)_clientCount, int(_recvCount), int(_msgCount));
+			CellLog::Info("thread<%d>, time<%lf>, sock<%d>, accpet<%d>, join<%d>, recv<%d>, msg<%d>\n", 
+				(int)_cellServers.size(), 
+				t1, _sock, 
+				(int)_clientAccept, 
+				(int)_clientJoin,
+				int(_recvCount), 
+				int(_msgCount));
 			_recvCount = 0;
 			_msgCount = 0;
 			_tTime.update();
@@ -214,12 +224,13 @@ public:
 	}
 	//只会被一个线程调用
 	virtual void OnNetJoin(CellClient* pClient) {
-		_clientCount++;
+		_clientJoin++;
 	}
 	//cellServer 4 多个线程触发 不安全
 	//如果只开启1个cellServer就是安全的
 	virtual void OnNetLeave(CellClient* pClient) {
-		_clientCount--;
+		_clientAccept--;
+		_clientJoin--;
 	}
 
 	//cellServer 4 多个线程触发 不安全

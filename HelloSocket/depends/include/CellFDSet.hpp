@@ -3,21 +3,39 @@
 
 #include "Cell.hpp"
 
-#define CELL_MAX_FD 10240
+//#define CELL_MAX_FD 10240
 
 class CellFDSet {
 public:
 	CellFDSet() {
-		int nSocketNum = 10240;
+
+	}
+	~CellFDSet() {
+		destroy();
+	}
+
+	//Linux下表示socket fd的最大值
+	//Windows下表示socket fd的数量
+	void create(int MaxFds) {
+		int nSocketNum = MaxFds;
 #ifdef _WIN32 
-		_nfdSize = sizeof(u_int) + (sizeof(SOCKET) * nSocketNum);
+		if (nSocketNum < 64) {
+			nSocketNum = 64;
+		}
+ 		_nfdSize = sizeof(u_int) + (sizeof(SOCKET) * nSocketNum);
 #else
-		_nfdSize = (nSocketNum / (8 * sizeof(char)));
+		// 用8KB存储65535个sockfd 8192byte * 8 = 65535
+		if (nSocketNum < 65535) {
+			nSocketNum = 65535;
+		}
+		_nfdSize = (nSocketNum / (8 * sizeof(char)) + 1);
 #endif
 		_pfdset = (fd_set*)new char[_nfdSize];
 		memset(_pfdset, 0, _nfdSize);
+		_MAX_SOCK_FD = nSocketNum;
 	}
-	~CellFDSet() {
+
+	void destroy() {
 		if (_pfdset) {
 			delete[] _pfdset;
 			_pfdset = nullptr;
@@ -36,7 +54,7 @@ public:
 			}
 		}
 		else {
-			CellLog_Error("CellFDSet::add sock<%d>, CELL_MAX_FD<%d>\n", s, CELL_MAX_FD);
+			CellLog_Error("CellFDSet::add sock<%d>, CELL_MAX_FD<%d>\n", s, _MAX_SOCK_FD);
 		}
 #endif // _WIN32
 
@@ -77,5 +95,6 @@ public:
 private:
 	fd_set* _pfdset = nullptr;
 	size_t _nfdSize = 0;
+	int _MAX_SOCK_FD = 0;
 };
 #endif // !_CELL_FD_SET_HPP_

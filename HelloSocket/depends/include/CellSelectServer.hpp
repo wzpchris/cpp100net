@@ -2,11 +2,21 @@
 #define _CELL_SELECT_SERVER_HPP_
 
 #include "CellServer.hpp"
+#include "CellFDSet.hpp"
 
 
 //网络消息接收服务类
 class CellSelectServer:public CellServer {
 public:
+	~CellSelectServer() {
+		Close();
+	}
+
+	virtual void setClientNum(int nSocketNum) {
+		_fdRead.create(nSocketNum);
+		_fdWrite.create(nSocketNum);
+		_fdRead_bak.create(nSocketNum);
+	}
 	virtual bool DoNetEvent() {
 		//fd_set fdExc;
 		if (_clients_change) {

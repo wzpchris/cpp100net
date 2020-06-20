@@ -3,6 +3,7 @@
 
 #include "EasyTcpServer.hpp"
 #include "CellSelectServer.hpp"
+#include "CellFDSet.hpp"
 
 class EasySelectServer :public EasyTcpServer {
 public:
@@ -14,6 +15,7 @@ protected:
 	virtual void OnRun(CellThread* pThread) {
 		//伯克利 BSD	socket
 		CellFDSet fdRead;
+		fdRead.create(_nMaxClient);
 		while (pThread->isRun()) {
 			time4msg();
 			//清理集合

@@ -8,10 +8,14 @@
 class CellEpollServer:public CellServer {
 public:
 	CellEpollServer() {
-		_ep.create(10240);
+
 	}
 	~CellEpollServer(){
 		_ep.destroy();	
+	}
+
+	virtual void setClientNum(int nSocketNum) {
+		_ep.create(nSocketNum);
 	}
 
 	virtual bool DoNetEvent() {

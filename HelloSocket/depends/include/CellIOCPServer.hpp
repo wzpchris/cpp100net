@@ -82,7 +82,7 @@ public:
 		//接收数据 
 		if (IO_TYPE::RECV == _ioEvent.pIoData->iotype) {
 			if (_ioEvent.bytesTrans <= 0) {
-				CellLog_Error("recv rmClient close sockfd=%d, bytesTrans=%d\n", _ioEvent.pIoData->sockfd, _ioEvent.bytesTrans);
+				//CellLog_Error("recv rmClient close sockfd=%d, bytesTrans=%d\n", _ioEvent.pIoData->sockfd, _ioEvent.bytesTrans);
 				rmClient(_ioEvent);
 				return ret;
 			}
@@ -100,7 +100,7 @@ public:
 		else if (IO_TYPE::SEND == _ioEvent.pIoData->iotype) {
 			//客户端断开处理
 			if (_ioEvent.bytesTrans <= 0) {
-				CellLog_Error("send rmClient sockfd=%d, bytesTrans=%d\n", _ioEvent.pIoData->sockfd, _ioEvent.bytesTrans);
+				//CellLog_Error("send rmClient sockfd=%d, bytesTrans=%d\n", _ioEvent.pIoData->sockfd, _ioEvent.bytesTrans);
 				rmClient(_ioEvent);
 				return ret;
 			}

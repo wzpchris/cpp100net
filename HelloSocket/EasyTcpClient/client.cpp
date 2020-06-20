@@ -26,6 +26,8 @@ int nWorkSleep = 1;
 int nSendBuffSize = SEND_BUFF_SIZE;
 //客户端接收缓冲区大小
 int nRecvBuffSize = RECV_BUFF_SIZE;
+//是否检测发送的请求已被服务器回应
+bool bCheckSendBack = true;
 
 class MyClient :public EasyIOCPClient {
 public:
@@ -35,6 +37,7 @@ public:
 public:
 	virtual void OnNetMsg(netmsg_DataHeader* header) {
 		
+		_bSend = false;
 		switch (header->cmd)
 		{
 		case CMD_LOGIN_RESULT:
@@ -79,10 +82,11 @@ public:
 	int SendTest(netmsg_Login* login) {
 		int ret = 0;
 		//如果剩余发送次数大于0
-		if (_nSendCount > 0) {
+		if (_nSendCount > 0 && !_bSend) {
 			login->msgID = _nSendMsgID;
 			ret = SendData(login);
 			if (SOCKET_ERROR != ret) {
+				_bSend = bCheckSendBack;
 				++_nSendMsgID;
 				//如果剩余发送次数减少一次
 				--_nSendCount;
@@ -102,17 +106,20 @@ public:
 		}
 		return _nSendCount > 0;
 	}
+public:
+	//发送时间计数
+	time_t _tRestTime = 0;
 private:
 	//接收消息id计数
 	int _nRecvMsgID = 1;
 	//发送消息id计数
 	int _nSendMsgID = 1;
-	//发送时间计数
-	time_t _tRestTime = 0;
 	//发送条数计数
 	int _nSendCount = 0;
 	//检查接收到的服务端消息ID是否连续
 	bool _bCheckMsgID = false;
+	//
+	bool _bSend = false;
 };
 
 std::atomic_int sendCount(0);
@@ -127,12 +134,14 @@ void WorkThread(CellThread* pThread, int id) {  //4个线程 ID 1-4
 	//计算本线程客户端在Clients中对应的index
 	int begin = 0;
 	int end = nClient;
+	int nTemp1 = nSendSleep > 0 ? nSendSleep : 1;
 	for (int n = begin; n < end; ++n) {
 		if (!pThread->isRun()) {
 			break;
 		}
 
 		clients[n] = new MyClient();
+		clients[n]->_tRestTime = n % nTemp1;
 		//多线程时让下CPU
 		CellThread::Sleep(0);
 	}
@@ -237,6 +246,8 @@ int main(int argc, char* args[]) {
 	nClient = CellConfig::Instance().getInt("nClient", 10000);
 	nMsg = CellConfig::Instance().getInt("nMsg", 10);
 	nSendSleep = CellConfig::Instance().getInt("nSendSleep", 100);
+	nWorkSleep = CellConfig::Instance().getInt("nWorkSleep", 1);
+	bCheckSendBack = CellConfig::Instance().hasKey("-checkSendBack");
 	nSendBuffSize = CellConfig::Instance().getInt("nSendBuffSize", SEND_BUFF_SIZE);
 	nRecvBuffSize = CellConfig::Instance().getInt("nRecvBuffSize", RECV_BUFF_SIZE);
 	

@@ -6,7 +6,6 @@
 #include "CellClient.hpp"
 #include "CellSemaphore.hpp"
 #include "CellLog.hpp"
-#include "CellFDSet.hpp"
 
 #include <vector>
 #include <map>
@@ -23,6 +22,10 @@ public:
 	void setId(int id) {
 		_id = id;
 		_taskServer.serverId = id;
+	}
+
+	virtual void setClientNum(int nSocketNum) {
+		
 	}
 
 	void setEventObj(INetEvent* pNetEvent) {

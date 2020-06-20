@@ -15,7 +15,7 @@ protected:
 	virtual void OnRun(CellThread* pThread) {
 		//伯克利 BSD	socket
 		CellEpoll ep;
-		ep.create(1);
+		ep.create(_nMaxClient);
 		ep.ctl(EPOLL_CTL_ADD, sockfd(), EPOLLIN);
 		while (pThread->isRun()) {
 			time4msg();

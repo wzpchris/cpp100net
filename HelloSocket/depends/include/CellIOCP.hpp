@@ -181,6 +181,9 @@ public:
 			if (ERROR_CONNECTION_ABORTED == err) {
 				return 1;
 			}
+			if (ERROR_SEM_TIMEOUT == err) {
+				return 1;
+			}
 			CellLog_Error("GetQueuedCompletionStatus failed with error %d\n", err);
 			return -1;
 		}

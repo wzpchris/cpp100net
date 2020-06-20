@@ -20,8 +20,13 @@ set cmd=%cmd% nSendSleep=1000
 set cmd=%cmd% nSendBuffSize=20480
 ::客户端接收缓冲区大小(字节)
 set cmd=%cmd% nRecvBuffSize=20480
+::
+set cmd=%cmd% nWorkSleep=1
 ::检查接收到的服务端消息ID是否连续
 set cmd=%cmd% -checkMsgID
+::是否检测发送的请求已被服务器回应
+::收到服务器回应后才发送下一条请求
+set cmd=%cmd% -checkSendBack
 ::::::::
 ::::::::
 ::启动程序 传入参数

@@ -30,8 +30,12 @@ cmd=$cmd' nSendSleep=1000'
 cmd=$cmd' nSendBuffSize=20480'
 #客户端接收缓冲区大小(字节)
 cmd=$cmd' nRecvBuffSize=20480'
+#
+cmd=$cmd' nWorkSleep=1'
 #检查接收到的服务端消息ID是否连续
 cmd=$cmd' -checkMsgID'
+#是否检测发送的请求已被服务器回应
+cmd=$cmd' -checkSendBack'
 
 #启动程序 传入参数
 ./EasyTcpClient $cmd

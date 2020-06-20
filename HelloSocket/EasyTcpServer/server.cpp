@@ -208,7 +208,7 @@ int main(int argc, char* args[]) {
 	MyServer server;
 	server.InitSocket();
 	server.Bind(strIP, nPort);
-	server.Listen(64);
+	server.Listen(SOMAXCONN);
 	server.Start(nThread);
 
 	//在主线程中等待用户输入命令
