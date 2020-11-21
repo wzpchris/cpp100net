@@ -59,7 +59,7 @@ public:
         ev.data.fd = sockfd;
         // 向epoll对象注册需要管理，监听的socket文件描述符
         // 并且说明关心的事件
-        // 返回0代表操作陈宫，返回负值戴斌失败-1
+        // 返回0代表操作成功，返回负值代表失败-1
         int ret = epoll_ctl(_epfd, op, sockfd, &ev);
         if (ret == EPOLL_ERROR) {
             if (events & EPOLLIN) {
@@ -124,6 +124,7 @@ public:
         //  t>0:等待指定数值毫秒后返回
         int ret = epoll_wait(_epfd, _pEvents, _nMaxEvents, timeout);
         if (EPOLL_ERROR == ret) {
+			// 可能epoll_wait被更高级的中断给打断
             if (errno == EINTR) {
                 return 0;
             }

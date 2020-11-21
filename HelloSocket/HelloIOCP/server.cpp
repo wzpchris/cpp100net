@@ -47,6 +47,7 @@ int main() {
 	iocp.reg(sockServer);
 
 	//6 向IOCP投递接收客户端连接的任务
+	// 从库中预加载AcceptEx函数
 	iocp.loadAccpetEx(sockServer);
 
 	IO_DATA_BASE ioData[nClient] = {};

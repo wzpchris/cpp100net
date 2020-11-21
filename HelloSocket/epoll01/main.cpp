@@ -146,6 +146,11 @@ int main() {
                 }else {
                     g_clients.push_back(_cSock);
                     cell_epoll_ctl(epfd, EPOLL_CTL_ADD, _cSock, EPOLLIN);
+					// TODO LT and ET 视频312中有提到这里的LT的效果
+                    // cell_epoll_ctl(epfd, EPOLL_CTL_ADD, _cSock, EPOLLIN | EPOLLOUT);
+                    // cell_epoll_ctl(epfd, EPOLL_CTL_ADD, _cSock, EPOLLIN | EPOLLOUT | EPOLLLT);
+                    // cell_epoll_ctl(epfd, EPOLL_CTL_ADD, _cSock, EPOLLIN | EPOLLOUT | EPOLLET);
+                    // cell_epoll_ctl(epfd, EPOLL_CTL_ADD, _cSock, EPOLLIN | EPOLLET);
                     printf("新客户端加入 socket=%d, IP=%s\n", (int)_cSock, inet_ntoa(clientAddr.sin_addr));
                 }   
                 continue; 
@@ -163,7 +168,7 @@ int main() {
                 cell_epoll_ctl(epfd, EPOLL_CTL_MOD, cSockfd, EPOLLOUT);
             }
             //当前socket有数据可写,也有可能发生错误
-            if(events[i].events & E POLLOUT) {
+            if(events[i].events & EPOLLOUT) {
                 printf("EPOLLOUT | %d\n", msgCount);
                 auto cSockfd = events[i].data.fd;
                 int ret = writeData(cSockfd);

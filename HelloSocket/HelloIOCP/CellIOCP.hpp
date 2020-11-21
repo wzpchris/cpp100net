@@ -8,6 +8,7 @@
 #pragma comment(lib, "ws2_32.lib")
 
 #include <mswsock.h>
+//#pragma comment(lib, "Mswsock.lib")
 #include <stdio.h>
 
 enum IO_TYPE {
@@ -163,6 +164,7 @@ public:
 		return 1;
 	}
 
+	// 通过加载库的方式加载_AcceptEx函数
 	bool loadAccpetEx(SOCKET listenSocket) {
 		if (INVALID_SOCKET != _sockServer) {
 			printf("loadAccpetEx _sockServer != INVALID_SOCKET\n");

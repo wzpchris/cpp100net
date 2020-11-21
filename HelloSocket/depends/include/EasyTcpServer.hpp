@@ -12,7 +12,7 @@
 #include <map>
 #include <thread>
 #include <mutex>
-#include <atomic> 
+#include <atomic>
 
 class EasyTcpServer :public INetEvent {
 private:
@@ -66,8 +66,7 @@ public:
 		_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (INVALID_SOCKET == _sock) {
 			CellLog::Info("socket error ...\n");
-		}
-		else {
+		} else {
 			CellNetWork::make_reuseaddr(_sock);
 			CellLog::Info("socket success sock=%d...\n", (int)_sock);
 		}
@@ -85,23 +84,21 @@ public:
 #ifdef _WIN32
 		if (ip != NULL) {
 			_sin.sin_addr.S_un.S_addr = inet_addr(ip);
-		}
-		else {
+		} else {
 			_sin.sin_addr.S_un.S_addr = INADDR_ANY;
 		}
 #else 
 		if (ip != NULL) {
+
 			_sin.sin_addr.s_addr = inet_addr(ip);
-		}
-		else {
+		} else {
 			_sin.sin_addr.s_addr = INADDR_ANY;
 		}
 #endif
 		int ret = bind(_sock, (const sockaddr*)&_sin, sizeof(sockaddr_in));
 		if (SOCKET_ERROR == ret) {
 			CellLog::Info("bind error...\n");
-		}
-		else {
+		} else {
 			CellLog::Info("bind success port[%d]...\n", (int)port);
 		}
 
