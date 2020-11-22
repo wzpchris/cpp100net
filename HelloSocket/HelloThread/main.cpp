@@ -11,7 +11,7 @@ mutex m;
 const int tCount = 4;
 //int sum = 0;
 //原子操作
-atomic_int sum = 0;
+atomic_int sum(0);
 void workFun(int num) {
 	/*for (int n = 0; n < num; ++n) {
 		cout << "hello, other thread." << endl;
@@ -45,12 +45,12 @@ int main() {
 		//t[n].detach();
 	}
 
-	cout << "cost time:" << tTime.getElapsedTimeInMilliSec() << endl;
+	cout << "cost time:" << tTime.getElapsedTimeInMilliSec() << "ms" << endl;
 	cout << "sum = " << sum << endl;
 	cout << "hello, main thread." << endl;
 
 	while (true);
 
-	
+
 	return 0;
 }
