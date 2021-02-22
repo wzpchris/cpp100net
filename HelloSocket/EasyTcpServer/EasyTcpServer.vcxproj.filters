@@ -22,27 +22,4 @@
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="EasyTcpServer.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="MessageHeader.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="CellTimestamp.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="CellTask.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Alloctor.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="MemoryMgr.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="CellObjectPool.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-  </ItemGroup>
 </Project>
