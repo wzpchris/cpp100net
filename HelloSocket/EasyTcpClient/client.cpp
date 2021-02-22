@@ -1,6 +1,7 @@
 #include "CellLog.hpp"
 //#include "EasySelectClient.hpp"
-#include "EasyIOCPClient.hpp"
+//#include "EasyIOCPClient.hpp"
+#include "EasyEpollClient.hpp"
 #include "CellTimestamp.hpp"
 #include "CellConfig.hpp"
 
@@ -29,7 +30,7 @@ int nRecvBuffSize = RECV_BUFF_SIZE;
 //是否检测发送的请求已被服务器回应
 bool bCheckSendBack = true;
 
-class MyClient :public EasyIOCPClient {
+class MyClient :public EasyEpollClient {
 public:
 	MyClient() {
 		_bCheckMsgID = CellConfig::Instance().hasKey("-checkMsgID");

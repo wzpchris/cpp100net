@@ -17,7 +17,7 @@ cmd=$cmd' nPort=4567'
 #工作线程数量
 cmd=$cmd' nThread=1'
 #每个工作线程，创建多少个客户端
-cmd=$cmd' nClient=10000'
+cmd=$cmd' nClient=1'
 ##################
 #数据会先写入发送缓冲区
 #等待socket可写时才实际发送

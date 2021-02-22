@@ -24,7 +24,7 @@ public:
 		}
  		_nfdSize = sizeof(u_int) + (sizeof(SOCKET) * nSocketNum);
 #else
-		// 用8KB存储65535个sockfd 8192byte * 8 = 65535
+		// 用8KB存储65535个sockfd 8192byte * 8 = 65536
 		if (nSocketNum < 65535) {
 			nSocketNum = 65535;
 		}
