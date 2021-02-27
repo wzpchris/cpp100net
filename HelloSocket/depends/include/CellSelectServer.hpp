@@ -95,7 +95,7 @@ public:
 #else	
 		for (auto iter = _clients.begin(); iter != _clients.end();) {
 			if (_fdRead.has(iter->first)) {
-				if (SOCKET_ERROR == iter->second->SendDataReal()) {
+				if (SOCKET_ERROR == RecvData(iter->second)) {
 					OnClientLeave(iter->second);
 					iter = _clients.erase(iter);
 					continue;
